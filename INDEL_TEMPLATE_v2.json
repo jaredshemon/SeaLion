@@ -1,0 +1,47 @@
+{
+  "TYPE": ["NUCLEOTIDE 1"],  
+  "ancestralprint": ["NEW", "SAME", "FALSE"],  
+  "output": ["PHYLIP", "NEXUS", "FASTA", "PHYLIPT"],  
+  "randomseed": "",  
+  "models": {  
+    "GTR": {  
+      "submodel": "",  
+      "statefreq": "",  
+      "rates": ""  
+    },  
+    "HKY": {  
+      "submodel": "",  
+      "statefreq": "",  
+      "insertmodel": "",  
+      "insertrate": ""  
+    },  
+    "JC": {  
+      "submodel": "",  
+      "statefreq": "",  
+      "rates": ""  
+    },  
+    "F81": {  
+      "submodel": "",  
+      "statefreq": "",  
+      "rates": ""  
+    },  
+    "F84": {  
+      "submodel": "",  
+      "statefreq": "",  
+      "rates": ""  
+    }  
+  },  
+  "TREE": {  
+    "template": "" 
+  },  
+  "BRANCHES": {  
+    "b1": ""  
+  },  
+  "PARTITIONS": {  
+    "part1": ["TREE", "BRANCHES", "SEQ_LENGTH"]  
+  },  
+  "EVOLVE": [  
+    "part1", "", ""  
+  ]  
+}
+
