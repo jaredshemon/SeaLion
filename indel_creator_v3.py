@@ -20,6 +20,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import textwrap
 from matplotlib.lines import Line2D
+import pandas as pd
+from numpy import savetxt
 
 now_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
@@ -219,7 +221,7 @@ def generate_config(json_data, output_path):
     output_lines.append("\n")
 
     # Add TREE section
-    output_lines.append(f"[TREE] {json_data['TREE']["template"]}\n")
+    output_lines.append(f"[TREE] {json_data['TREE']['template']}\n")
 
     # Add BRANCHES section
     output_lines.append(f"[BRANCHES] b1 {json_data['BRANCHES']['b1']}\n")
@@ -242,8 +244,8 @@ def generate_config(json_data, output_path):
     the preceeding path names'''
     
 
-user_file_path = '/Users/jaredshemonsky/Documents/Thesis Documents/user_file_v2.txt'
-json_template_path = '/Users/jaredshemonsky/Documents/Thesis Documents/INDEL_TEMPLATE_v2.json'
+user_file_path = '/Users/jaredshemonsky/Documents/Thesis_Documents/user_file_v2.txt'
+json_template_path = '/Users/jaredshemonsky/Documents/Thesis_Documents/INDEL_TEMPLATE_v2.json'
 
 #Read user data from the user_file
 user_data, iq_model = read_user_data(user_file_path)
@@ -458,6 +460,12 @@ def graph_correct_outputs(tree_output_path, user_data, tq_dist_path, graph_path)
     polynomial = np.poly1d(coefficients)
     regression_line = polynomial(x)
 
+    #This saves the x,y data as a csv for future graph overlays
+    csv_output = {x_axis:y_axis for x_axis,y_axis in zip(list(x),y)}
+    numpy_csv = np.array(list(csv_output.items()))
+    csv_path = os.path.join(graph_path, f'{now_format}.csv')
+    savetxt(csv_path, numpy_csv, delimiter=',')   
+
     formatted_newick_tree = '\n'.join(textwrap.wrap(user_data['tree'], width=40))
     formatted_newick_model = '\n'.join(textwrap.wrap(user_data['b1'], width=40))
 
@@ -480,8 +488,12 @@ def graph_correct_outputs(tree_output_path, user_data, tq_dist_path, graph_path)
     plt.show()
 
 
-graph_correct_outputs(f'/Users/jaredshemonsky/Downloads/INDELibleV1.03/tree_output_{now_format}', user_data, '/Users/jaredshemonsky/Downloads/tqDist-1.0.2', f'/Users/jaredshemonsky/Downloads/INDELibleV1.03/tree_graphs/{user_data['tree']}')
+graph_correct_outputs(f'/Users/jaredshemonsky/Downloads/INDELibleV1.03/tree_output_{now_format}', user_data, '/Users/jaredshemonsky/Downloads/tqDist-1.0.2', f"/Users/jaredshemonsky/Downloads/INDELibleV1.03/tree_graphs/{user_data['tree']}")
 
+'''
+def visualize_curves():
+    file = '/Users/jaredshemonsky/Downloads/INDELibleV1.03/tree_graphs/t1 (((A1:0.35,B1:0.35):0.06,C1:0.41):0.09,D1:0.5);.csv'
+    with open(file, 'r') as f:
+        df = pd.read_csv(f)
 
-
-
+'''
