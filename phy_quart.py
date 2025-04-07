@@ -57,20 +57,41 @@ def make_clade_files(fasta_path, clade_path):
         with open(file_path, 'r') as file:
             lines = file.readlines()
             for index, line in enumerate(lines):
-                for group in groups:  # Check all groups
+                for group in groups:  # Check all groups                
                     if line.strip().startswith(f'>{group}'):
                         if index + 1 < len(lines):  # Ensure there's a sequence line after
                             sequences[group].append(lines[index + 1].strip())
 
-    for group, seq_list in sequences.items():
-        output_file = os.path.join(clade_path, f"{group}.txt")
+    chunk_size = 100
+    num_chunks = len(sequences[group])/chunk_size
+    
+    for i in range(int(num_chunks)):
+        output_file = os.path.join(clade_path, f"clade_file_{i+1}.fas")
+        
         with open(output_file, 'w') as f:
-            for index, seq in enumerate(seq_list, start=1):
-                f.write(f"{group}{index}\n{seq}\n")
+            for group in groups:
+                start = i * chunk_size
+                end = start + chunk_size
+                sublist = sequences[f'{group}'][start:end]
+                for index, seq in enumerate(sublist, start=start + 1):
+                    f.write(f">{group}{index}\n{seq}\n") 
 
+        clade_definition_file = os.path.join(clade_path, f"clade_def_file_{i+1}.txt")    
+        with open(clade_definition_file, 'w') as f:
+            for group, seq_list in sequences.items():
+                f.write(f'{group}, ')
+                for q, seq in enumerate(sublist, start = 1):
+                    if q == start + len(sublist):
+                        f.write(f'{group}{q} ')    
+                    else:
+                        f.write(f'{group}{q}, ')
+                f.write('\n')
+    
+    
     return "Sequences extracted and saved! "
 
 fasta_path = '/Users/jaredshemonsky/Downloads/INDELibleV1.03/iq_output_2025-03-28_09-58-06'
 clade_path = '/Users/jaredshemonsky/Downloads/INDELibleV1.03/Clade_folder'
 
 make_clade_files(fasta_path, clade_path)
+

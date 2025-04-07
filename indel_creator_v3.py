@@ -296,7 +296,7 @@ def rename_indel(indel_input_path):
         print('First file processed, renamed to control.txt ')
         
         try:
-            subprocess.run(["/Users/jaredshemonsky/Downloads/INDELibleV1.03/src/indelible", "control.txt"], cwd = directory_path, shell = True)
+            subprocess.run(["/Users/jaredshemonsky/Downloads/INDELibleV1.03/src/indelible", "control.txt"], cwd = indel_input_path, shell = True)
         except Exception:
             print("Error loading file properly")
             
@@ -542,6 +542,7 @@ def main():
     graph_path = 'path/to/graph_output'
     graph_correct_outputs(tree_output_path, user_data, tq_dist_path, graph_path)
 
+'''
 # Example function definitions with docstrings (to be replaced with actual implementations)
 def read_user_data(user_file_path):
     """Read user data from a file."""
@@ -581,3 +582,4 @@ def graph_correct_outputs(tree_output_path, user_data, tq_dist_path, graph_path)
 
 if __name__ == "__main__":
     main()
+'''
