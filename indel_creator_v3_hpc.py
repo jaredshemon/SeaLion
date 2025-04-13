@@ -20,6 +20,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import textwrap
 from matplotlib.lines import Line2D
+from numpy import savetxt
 
 now_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
@@ -491,6 +492,12 @@ def graph_correct_outputs(tree_output_path, user_data, tq_dist_path, graph_path)
     polynomial = np.poly1d(coefficients)
     regression_line = polynomial(x)
 
+    #This saves the x,y data as a csv for future graph overlays
+    csv_output = {x_axis:y_axis for x_axis,y_axis in zip(list(x),y)}
+    numpy_csv = np.array(list(csv_output.items()))
+    csv_path = os.path.join(graph_path, f'{now_format}.csv')
+    savetxt(csv_path, numpy_csv, delimiter=',') 
+
     formatted_newick_tree = '\n'.join(textwrap.wrap(user_data['tree'], width=40))
     formatted_newick_model = '\n'.join(textwrap.wrap(user_data['b1'], width=40))
 
@@ -574,4 +581,45 @@ clade_path = f'//home/s36jshem_hpc/sealion/runs/Clade_folder/clade_files_{now_fo
 
 make_clade_files(fasta_path, clade_path)
 
+
+def clade_to_sealion(clade_path, sealion_path):
+    '''This function should take the files from the clade folder, a clade definition file according to the sealion manual, and a sequence
+    file for each GC content. It should then run the sealion script, then returnt the clade files to their folder and run the next clade files'''
+
+    clade_def_files = [f for f in os.listdir(clade_path) if f.startswith('clade_def_file') and f.endswith('.txt')]
+    clade_files = [f for f in os.listdir(clade_path) if f.startswith('clade_file') and f.endswith('.fas')]
+
+    clade_files.sort(key=lambda x: int(re.search(r'*(\d+)*', x).group(1)))
+    clade_def_files.sort(key=lambda x: int(re.search(r'*(\d+)*', x).group(1)))
+
+    if len(clade_def_files) != len(clade_files):
+        print("Mismatch between clade files and clade definition files. Please check your inputs.")
+        return
+
+    if not os.path.exists(clade_def_files) or not os.path.exists(clade_file):
+        print(f"Skipping iteration {i}: Missing files {clade_def_file} or {clade_file}")
+    
+    for clade_file, clade_def_file in zip(clade_def_files, clade_files):
+        clade_file_path = os.path.join(clade_path, clade_file)
+        clade_def_file_path = os.path.join(clade_path, clade_def_file)
+
+        try:
+            shutil.move(clade_def_file, sealion_path)
+            shutil.move(clade_file, sealion_path)
+            os.chdir(sealion_path)
+            executable_command = (f"apptainer exec SeaLion_container.sif sealion1.pl {executable_command} -i {clade_file} -p {clade_def_file} -o D -M '10000' -l '4000' -prt 1 -s")
+            os.system(executable_command)
+        except Exception as e:
+            print(f"Error during execution for iteration {i}: {e}")
+
+        finally:
+            try:
+                shutil.move(os.path.join(sealion_path, clade_def_file), clade_path)
+                shutil.move(os.path.join(sealion_path, clade_file), clade_path)
+            except Exception as e:
+               print(f"Error while moving files back for {clade_file} and {clade_def_file}: {e}")
+
+            os.chdir(clade_path)
+
+        
 
