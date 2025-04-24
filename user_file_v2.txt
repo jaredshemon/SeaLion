@@ -13,5 +13,5 @@ rates = 0 1.0 0
 tree = t1 (((A1:0.35,B1:0.35):0.06,C1:0.41):0.09,D1:0.5);
 b1 =(((A1#F81,B1#F81_2)#F81,C1#F81_2)#F81,D1#F81)#F81;
 SEQ_LENGTH = 10000
-out_file = GTRout{i}
+out_file = fastaout{i}
 IQ_model = F81 
