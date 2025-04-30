@@ -152,7 +152,7 @@ def update_json_structure(json_data, user_data, iteration):
             #step_increase = (iteration - 1) // 100
             #gc_content = min(gc_min + step_increase * gc_step, gc_max) / 100
             for i in range(gc_min, gc_max + 1, gc_step):
-                if (iteration - 1) // 100 == (i - gc_min) // gc_step:
+                if (iteration - 1) // 10 == (i - gc_min) // gc_step:
                     gc_content = i / 100
                     break
      
@@ -221,10 +221,10 @@ def generate_config(json_data, output_path):
     output_lines.append("\n")
 
     # Add TREE section
-    output_lines.append(f"[TREE] {json_data['TREE']['template']}\n")
+    output_lines.append(f"[TREE] {re.sub(r'\\s+', '', json_data['TREE']['template'])}\n")
 
     # Add BRANCHES section
-    output_lines.append(f"[BRANCHES] b1 {json_data['BRANCHES']['b1']}\n")
+    output_lines.append(f"[BRANCHES] b1 {re.sub(r'\\s+', '', json_data['BRANCHES']['b1'])}\n")
 
     # Add PARTITIONS section
     partitions = json_data['PARTITIONS']['part1']
@@ -244,7 +244,7 @@ def generate_config(json_data, output_path):
     the preceeding path names'''
     
 
-user_file_path = '/Users/jaredshemonsky/Documents/Thesis_Documents/user_file_v2.txt'
+user_file_path = '/Users/jaredshemonsky/Documents/Thesis_Documents/sea_lion/user_file_v2.txt'
 json_template_path = '/Users/jaredshemonsky/Documents/Thesis_Documents/INDEL_TEMPLATE_v2.json'
 
 #Read user data from the user_file
@@ -254,6 +254,7 @@ user_data, iq_model = read_user_data(user_file_path)
 #Load JSON template
 with open(json_template_path, 'r') as f:
     json_data = json.load(f)
+
 
 # Validate user data
 validate_user_data(user_data, json_data) ##json_data is the combined user_file into the json template, user_data is the dict with all the user_file info in it
@@ -271,8 +272,8 @@ except OSError as error:
     print(f"Error! Unable to create directory: {indelible_input_path}/")
 
 
-# Generate 600 simulation files with different out_file names, 0-100 = 50% GC, 101-200 = 55%... 501-600 = 75% GC
-for i in range(1, 601):
+# Generate 60 simulation files with different out_file names, 0-10 = 50% GC, 11-20 = 55%... 51-60 = 75% GC
+for i in range(1, 61):
     user_data['randomseed'] = random.randint(1, 100000)
     updated_json_data = update_json_structure(json_data, user_data, i)
     indel_input_path= f'{indelible_input_path}/indelible_input_{i}.txt'
@@ -314,9 +315,9 @@ def move_to_indel_output(indel_input_path, output_directory):
     if not os.path.exists(output_directory):
         os.makedirs(output_directory)
         
-    for f in os.listdir(directory_path):
+    for f in os.listdir(indel_input_path):
         if f.startswith('GTR'):
-            src_path = os.path.join(directory_path, f)
+            src_path = os.path.join(indel_input_path, f)
             dst_path = os.path.join(output_directory, f)
             shutil.move(src_path, dst_path)
 
@@ -414,6 +415,8 @@ def graph_correct_outputs(tree_output_path, user_data, tq_dist_path, graph_path)
         match = re.search(r'\d+', file_name)
         return int(match.group()) if match else -1
 
+    if not os.path.exists(graph_path):
+        os.makedirs(graph_path)
 
     newick_strings = []
     for file in sorted(os.listdir(tree_output_path), key = extract_number):
@@ -448,8 +451,8 @@ def graph_correct_outputs(tree_output_path, user_data, tq_dist_path, graph_path)
     # Preparing the data for graphing
     gc_contents = [47 + (i // 100) * 4 for i in range(600)]
     gc_content_labels = [f"{47 + i * 4}%" for i in range(6)]
-    correct_counts = [results[i:i + 100].count(0) for i in range(0, 600, 100)]
-    incorrect_counts = [results[i:i + 100].count(1) for i in range(0, 600, 100)]
+    correct_counts = [results[i:i + 100].count(0) for i in range(1, 61, 10)]
+    incorrect_counts = [results[i:i + 100].count(1) for i in range(1, 61, 10)]
     percent_counts = [(correct / (correct + incorrect)) if (correct + incorrect) > 0 else 0 for correct, incorrect in zip(correct_counts, incorrect_counts)]
 
     
@@ -463,7 +466,7 @@ def graph_correct_outputs(tree_output_path, user_data, tq_dist_path, graph_path)
     #This saves the x,y data as a csv for future graph overlays
     csv_output = {x_axis:y_axis for x_axis,y_axis in zip(list(x),y)}
     numpy_csv = np.array(list(csv_output.items()))
-    csv_path = os.path.join(graph_path, f'{now_format}.csv')
+    csv_path = f'{graph_path}.csv'
     savetxt(csv_path, numpy_csv, delimiter=',')   
 
     formatted_newick_tree = '\n'.join(textwrap.wrap(user_data['tree'], width=40))
@@ -480,23 +483,114 @@ def graph_correct_outputs(tree_output_path, user_data, tq_dist_path, graph_path)
     plt.ylabel('% of Correct Newick Tree Topologies')
     plt.title('Correct Newick String Matches by GC Content')
     plt.xticks(x, gc_content_labels)
-    plt.legend(handles = [custom_legend], loc = 'upper right', fontsize = 'x-small')
+    #plt.legend(handles = [custom_legend], loc = 'upper right', fontsize = 'x-small')
 
-    if not os.path.exists(graph_path):
-        os.makedirs(graph_path)
-    plt.savefig(os.path.join(graph_path, f'{now_format}.png'), format='png')
+    plt.savefig(f'{graph_path}.png')
     plt.show()
 
 
-graph_correct_outputs(f'/Users/jaredshemonsky/Downloads/INDELibleV1.03/tree_output_{now_format}', user_data, '/Users/jaredshemonsky/Downloads/tqDist-1.0.2', f"/Users/jaredshemonsky/Downloads/INDELibleV1.03/tree_graphs/{user_data['tree']}")
+graph_correct_outputs(f'/Users/jaredshemonsky/Downloads/INDELibleV1.03/tree_output_{now_format}', user_data, '/Users/jaredshemonsky/Downloads/tqDist-1.0.2', f"/Users/jaredshemonsky/Downloads/INDELibleV1.03/tree_graphs/{now_format}")
 
-'''
-def visualize_curves():
-    file = '/Users/jaredshemonsky/Downloads/INDELibleV1.03/tree_graphs/t1 (((A1:0.35,B1:0.35):0.06,C1:0.41):0.09,D1:0.5);.csv'
-    with open(file, 'r') as f:
-        df = pd.read_csv(f)
 
-'''
+def make_clade_files(fasta_path, clade_path):
+
+    if not os.path.exists(clade_path):
+        os.makedirs(clade_path)
+
+    def extract_number(file_name):
+        match = re.search(r'\d+', file_name)
+        return int(match.group()) if match else -1
+
+    files = sorted(
+        [f for f in os.listdir(fasta_path) if f.startswith('GTR') and f.endswith('.fas')],
+        key=extract_number)
+
+    groups = ["A", "B", "C", "D"]
+    sequences = {group: [] for group in groups}  # Dictionary to store sequences for each group
+
+    for file_name in files:
+        file_path = os.path.join(fasta_path, file_name)
+        with open(file_path, 'r') as file:
+            lines = file.readlines()
+            for index, line in enumerate(lines):
+                for group in groups:  # Check all groups                
+                    if line.strip().startswith(f'>{group}'):
+                        if index + 1 < len(lines):  # Ensure there's a sequence line after
+                            sequences[group].append(lines[index + 1].strip())
+
+    chunk_size = 10
+    num_chunks = len(sequences[group])/chunk_size
+    
+    for i in range(int(num_chunks)):
+        output_file = os.path.join(clade_path, f"clade_file_{i+1}.fas")
+        
+        with open(output_file, 'w') as f:
+            for group in groups:
+                start = i * chunk_size
+                end = start + chunk_size
+                sublist = sequences[f'{group}'][start:end]
+                for index, seq in enumerate(sublist, start=start + 1):
+                    if index == start + len(sublist):
+                        f.write(f">{group}{index}\n{seq}\n") 
+
+        clade_definition_file = os.path.join(clade_path, f"clade_def_file_{i+1}.txt")    
+        with open(clade_definition_file, 'w') as f:
+            for group, seq_list in sequences.items():
+                f.write(f'{group}, ')
+                for q, seq in enumerate(sublist, start = 1):
+                    if q == start + len(sublist):
+                        f.write(f'{group}{q} ')    
+                    else:
+                        f.write(f'{group}{q}, ')
+                f.write('\n')
+    
+    
+    return "Sequences extracted and saved! "
+
+fasta_path = f'/Users/jaredshemonsky/Downloads/INDELibleV1.03/iq_output_{now_format}'
+clade_path = f'/Users/jaredshemonsky/Downloads/INDELibleV1.03/clade_files_{now_format}'
+
+make_clade_files(fasta_path, clade_path)
+
+
+def clade_to_sealion(clade_path, sealion_path):
+    '''This function should take the files from the clade folder, a clade definition file according to the sealion manual, and a sequence
+    file for each GC content. It should then run the sealion script, then returnt the clade files to their folder and run the next clade files'''
+
+    clade_def_files = [f for f in os.listdir(clade_path) if f.startswith('clade_def_file') and f.endswith('.txt')]
+    clade_files = [f for f in os.listdir(clade_path) if f.startswith('clade_file') and f.endswith('.fas')]
+
+    clade_files.sort(key=lambda x: int(re.search(r'*(\d+)*', x).group(1)))
+    clade_def_files.sort(key=lambda x: int(re.search(r'*(\d+)*', x).group(1)))
+
+    if len(clade_def_files) != len(clade_files):
+        print("Mismatch between clade files and clade definition files. Please check your inputs.")
+        return
+
+    if not os.path.exists(clade_def_files) or not os.path.exists(clade_file):
+        print(f"Skipping iteration {i}: Missing files {clade_def_file} or {clade_file}")
+    
+    for clade_file, clade_def_file in zip(clade_def_files, clade_files):
+        clade_file_path = os.path.join(clade_path, clade_file)
+        clade_def_file_path = os.path.join(clade_path, clade_def_file)
+
+        try:
+            shutil.move(clade_def_file, sealion_path)
+            shutil.move(clade_file, sealion_path)
+            os.chdir(sealion_path)
+            executable_command = (f"apptainer exec SeaLion_container.sif sealion1.pl {executable_command} -i {clade_file} -p {clade_def_file} -o D -M '10000' -l '4000' -prt 1 -s")
+            os.system(executable_command)
+        except Exception as e:
+            print(f"Error during execution for iteration {i}: {e}")
+
+        finally:
+            try:
+                shutil.move(os.path.join(sealion_path, clade_def_file), clade_path)
+                shutil.move(os.path.join(sealion_path, clade_file), clade_path)
+            except Exception as e:
+               print(f"Error while moving files back for {clade_file} and {clade_def_file}: {e}")
+
+            os.chdir(clade_path)
 
 def main():
     # Dummy paths for user input file and JSON template
