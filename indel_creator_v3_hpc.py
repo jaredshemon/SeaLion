@@ -151,7 +151,7 @@ def update_json_structure(json_data, user_data, iteration):
             #step_increase = (iteration - 1) // 100
             #gc_content = min(gc_min + step_increase * gc_step, gc_max) / 100
             for i in range(gc_min, gc_max + 1, gc_step):
-                if (iteration - 1) // 100 == (i - gc_min) // gc_step:
+                if (iteration - 1) // 10 == (i - gc_min) // gc_step:
                     gc_content = i / 100
                     break
      
@@ -270,8 +270,8 @@ except OSError as error:
     print(f"Error! Unable to create directory: {indelible_input_path}/")
 
 
-# Generate 600 simulation files with different out_file names, 0-100 = 50% GC, 101-200 = 55%... 501-600 = 75% GC
-for i in range(1, 601):
+# Generate 60 simulation files with different out_file names, 0-10 = 50% GC, 11-20 = 55%... 51-60 = 75% GC
+for i in range(1, 61):
     user_data['randomseed'] = random.randint(1, 100000)
     updated_json_data = update_json_structure(json_data, user_data, i)
     output_file_path = f'{indelible_input_path}/indelible_input_{i}.txt'
@@ -478,9 +478,69 @@ def graph_correct_outputs(tree_output_path, user_data, tq_dist_path, graph_path)
 
 graph_correct_outputs(f'/home/s36jshem_hpc/sealion/runs/tree_output_{now_format}', user_data, '/home/s36jshem_hpc/sealion/runs', f"/home/s36jshem_hpc/sealion/runs/tree_graphs/{user_data['tree']}")
 
+
+def make_clade_files(fasta_path, clade_path):
+
+    if not os.path.exists(clade_path):
+        os.makedirs(clade_path)
+
+    def extract_number(file_name):
+        match = re.search(r'\d+', file_name)
+        return int(match.group()) if match else -1
+
+    files = sorted(
+        [f for f in os.listdir(fasta_path) if f.startswith('fasta') and f.endswith('.fas')],
+        key=extract_number)
+
+    groups = ["A", "B", "C", "D"]
+    sequences = {group: [] for group in groups}  # Dictionary to store sequences for each group
+
+    for file_name in files:
+        file_path = os.path.join(fasta_path, file_name)
+        with open(file_path, 'r') as file:
+            lines = file.readlines()
+            for index, line in enumerate(lines):
+                for group in groups:  # Check all groups                
+                    if line.strip().startswith(f'>{group}'):
+                        if index + 1 < len(lines):  # Ensure there's a sequence line after
+                            sequences[group].append(lines[index + 1].strip())
+
+    chunk_size = 10
+    num_chunks = len(sequences[group])/chunk_size
+    
+    for i in range(int(num_chunks)):
+        output_file = os.path.join(clade_path, f"clade_file_{i+1}.fas")
+        
+        with open(output_file, 'w') as f:
+            for group in groups:
+                start = i * chunk_size
+                end = start + chunk_size
+                sublist = sequences[f'{group}'][start:end]
+                for index, seq in enumerate(sublist, start=start + 1):
+                    f.write(f">{group}{index}\n{seq}\n") 
+
+        clade_definition_file = os.path.join(clade_path, f"clade_def_file_{i+1}.txt")    
+        with open(clade_definition_file, 'w') as f:
+            for group, seq_list in sequences.items():
+                f.write(f'{group}, ')
+                for q in range(start + 1, end + 1):
+                    if q == start + len(sublist):
+                        f.write(f'{group}{q} ')    
+                    else:
+                        f.write(f'{group}{q}, ')
+                f.write('\n')
+    
+    
+    return "Sequences extracted and saved! "
+
+fasta_path = f'/home/s36jshem_hpc/sealion/runs/iq_output_{now_format}'
+clade_path = f'/home/s36jshem_hpc/sealion/runs/clade_files_{now_format}'
+
+make_clade_files(fasta_path, clade_path)
+'''
 def make_clade_files(fasta_path, clade_path, sealion_directory):
-    '''this function makes the clade files in a random partitioned manner, randomizing the clade_def file and the clade file for each
-    gc step, e.g 1-100, 101-200... then moves them to the sealion portion of the script'''
+    this function makes the clade files in a random partitioned manner, randomizing the clade_def file and the clade file for each
+    gc step, e.g 1-100, 101-200... then moves them to the sealion portion of the script
 
     if not os.path.exists(clade_path):
         os.makedirs(clade_path)
@@ -554,7 +614,6 @@ clade_path = f'/home/s36jshem_hpc/sealion/runs/clade_files_{now_format}'
 sealion_directory = f'/home/s36jshem_hpc/sealion/sealion_script/runs_dir'
 make_clade_files(fasta_path, clade_path, sealion_directory)
 
-'''
 def mv_clade_files(clade_dir, sealion_location): 
     This function moves the files from the clade_path to the sealion location, then runs the sealion script, this is an optionable
     function if you'd like to run each file one at a time and not in parallel.
