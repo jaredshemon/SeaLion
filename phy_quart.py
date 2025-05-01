@@ -90,7 +90,7 @@ def make_clade_files(fasta_path, clade_path):
     
     return "Sequences extracted and saved! "
 
-fasta_path = '/Users/jaredshemonsky/Downloads/INDELibleV1.03/iq_output_2025-03-28_09-58-06'
+fasta_path = '/Users/jaredshemonsky/Downloads/INDELibleV1.03/iq_output_2025-04-08_11-28-11'
 clade_path = '/Users/jaredshemonsky/Downloads/INDELibleV1.03/Clade_folder'
 
 make_clade_files(fasta_path, clade_path)
