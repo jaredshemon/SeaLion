@@ -243,7 +243,7 @@ def generate_config(json_data, output_path):
     the preceeding path names'''
     
 
-user_file_path = '/home/s36jshem_hpc/sealion/sealion_files/user_file_v2.txt'
+user_file_path = '/home/s36jshem_hpc/sealion/sealion_files/sea_lion/user_file_v2.txt'
 json_template_path = '/home/s36jshem_hpc/sealion/sealion_files/INDEL_TEMPLATE_v2.json'
 
 #Read user data from the user_file
@@ -392,8 +392,134 @@ def move_tree_files(iqtree_output_path, tree_output_path):
         
 move_tree_files(iqtree_output_path, f'/home/s36jshem_hpc/sealion/runs/tree_output_{now_format}')
 
+def make_clade_files(fasta_path, clade_path, sealion_directory):
 
-def graph_correct_outputs(tree_output_path, user_data, tq_dist_path, graph_path):
+    if not os.path.exists(clade_path):
+        os.makedirs(clade_path)
+
+    def extract_number(file_name):
+        match = re.search(r'\d+', file_name)
+        return int(match.group()) if match else -1
+
+    files = sorted(
+        [f for f in os.listdir(fasta_path) if f.startswith('fasta') and f.endswith('.fas')],
+        key=extract_number)
+
+    groups = ["A", "B", "C", "D"]
+    sequences = {group: [] for group in groups}  # Dictionary to store sequences for each group
+
+    for file_name in files:
+        file_path = os.path.join(fasta_path, file_name)
+        with open(file_path, 'r') as file:
+            lines = file.readlines()
+            for index, line in enumerate(lines):
+                for group in groups:  # Check all groups                
+                    if line.strip().startswith(f'>{group}'):
+                        if index + 1 < len(lines):  # Ensure there's a sequence line after
+                            sequences[group].append(lines[index + 1].strip())
+
+    chunk_size = 10
+    num_chunks = len(sequences[group])/chunk_size
+    
+    for i in range(int(num_chunks)):
+        output_file = os.path.join(clade_path, f"clade_file_{i+1}.fas")
+        
+        with open(output_file, 'w') as f:
+            for group in groups:
+                start = i * chunk_size
+                end = start + chunk_size
+                sublist = sequences[group][start:end]
+                for index, seq in enumerate(sublist, start=1):  # Restart index from 1
+                    f.write(f">{group}{index}\n{seq}\n")
+
+        clade_definition_file = os.path.join(clade_path, f"clade_def_file_{i+1}.txt")
+        with open(clade_definition_file, 'w', newline = '\n') as f:
+            for group in groups:
+                start = i * chunk_size
+                end = start + chunk_size
+                sublist = sequences[group][start:end]
+                f.write(f'{group},')
+                for j in range(1, len(sublist) + 1):  # Also restart here
+                    if j == len(sublist):
+                        f.write(f'{group}{j}')
+                    else:
+                        f.write(f'{group}{j},')
+                f.write('\n')
+    
+    shutil.move(clade_path, sealion_directory)
+        
+    return "Sequences extracted and saved! "
+
+fasta_path = f'/home/s36jshem_hpc/sealion/runs/iq_output_{now_format}'
+clade_path = f'/home/s36jshem_hpc/sealion/runs/clade_files_{now_format}'
+sealion_directory = f'/home/s36jshem_hpc/sealion/sealion_script/runs_dir'
+make_clade_files(fasta_path, clade_path, sealion_directory)
+
+def shrink_newick(newick_string_location, clade_file_location, new_newick_path):
+    '''This function should shrink the newick string down without the branch lengths, then it will run it through juliannes python script 'ESOFT' then it 
+    will run it through reroot, after the newick string is corrected it will be placed in a new folder'''
+    newick_files = [f for f in os.listdir(newick_string_location)]
+    
+    full_path = [os.path.join(tree_location, f) for f in newick_files]
+    
+    newick_strings_files = {}
+    for file in full_path:
+        with open(file, 'r') as f:
+            for line in f:
+                line = re.sub(r':[0-9.]+', '', line)
+                newick_strings_files[file] = line.strip()
+
+    #### This below replaces the fasta file with the corresponding clade file, so we can run the subprocess command below    
+    clade_def = [f for f in os.listdir(clade_file_location) if f.startswith('clade_def')]
+
+    updated_newick_strings = {}
+    for clade_file in clade_def:
+        clade_num_match = re.search(r'clade_def_file_(\d+)', clade_file)
+        if clade_num_match:
+            clade_num = clade_num_match.group(1)
+            for fasta_file, newick in newick_strings_files.items():
+                fasta_num_match = re.search(r'fastaout(\d+)', fasta_file)
+                if fasta_num_match:
+                    fasta_num = fasta_num_match.group(1)
+                    # Match clade number with fasta number
+                    if fasta_num == clade_num:
+                        updated_newick_strings[clade_file] = newick
+                        #print(f"Matched Clade {clade_file} with Fasta {fasta_file}")
+    
+    results = {}
+    reroot_directory = '/home/s36jshem_hpc/sealion'
+    for k, v in updated_newick_strings.items():
+        full_clade = os.path.join(clade_file_location, k)
+        shutil.move(full_clade, reroot_directory)
+
+        command = f'python3 ESofT.py "{v}" {k}'
+        esoft_run = subprocess.run([command], cwd = reroot_directory, capture_output = True, check=True, text = True, shell = True)
+        output = esoft_run.stdout.strip()
+        reroot_command = f'./reroot.o "{output}" D {k}'
+        reroot_run =  subprocess.run([reroot_command], cwd = reroot_directory, capture_output = True, check=True, text = True, shell = True)
+        reroot_output = reroot_run.stdout.strip()
+        results[k] = reroot_output
+        shutil.move(k, clade_file_location)
+
+    sorted_results = dict(sorted(results.items(), key=lambda x: int(re.search(r'clade_def_file_(\d+)', x[0]).group(1))))
+
+    if not os.path.exists(new_newick_path):
+        os.makedirs(new_newick_path)
+
+    for clade_def, rerooted_newick in sorted_results.items():
+        number_of_file = re.search(r'clade_def_file_(\d+)', clade_def)
+        number_for_file = number_of_file.group(1)
+        output_file = os.path.join(newick_path, f'corrected_newick_{number_for_file}.txt')
+        with open(output_file, 'w') as f:
+            f.write(rerooted_newick.strip())
+
+newick_path = f'/home/s36jshem_hpc/sealion/runs/corrected_newick_output_{now_format}'
+clade_location = f'/home/s36jshem_hpc/sealion/sealion_script/runs_dir/clade_files_{now_format}'
+tree_location = f'/home/s36jshem_hpc/sealion/runs/tree_output_{now_format}'
+shrink_newick(tree_location, clade_location, newick_path)
+
+
+def graph_correct_outputs(newick_corrected_path, user_data, tq_dist_path, graph_path):
     ''' This function should take the newick string from our tree file, cross check it with the original, then graphs the correct ones
     vs the incorrect ones.'''
     def extract_number(file_name):
@@ -402,9 +528,9 @@ def graph_correct_outputs(tree_output_path, user_data, tq_dist_path, graph_path)
 
 
     newick_strings = []
-    for file in sorted(os.listdir(tree_output_path), key = extract_number):
+    for file in sorted(os.listdir(newick_corrected_path), key = extract_number):
         if file.endswith('treefile'):
-            file_path = os.path.join(tree_output_path, file)
+            file_path = os.path.join(newick_corrected_path, file)
             with open(file_path, 'r') as f:
                 newick_string = f.read().strip()
                 newick_strings.append(newick_string)
@@ -475,69 +601,73 @@ def graph_correct_outputs(tree_output_path, user_data, tq_dist_path, graph_path)
     plt.savefig(os.path.join(graph_path, f'{now_format}.png'), format='png')
     plt.show()
 
+newick_path = f'/home/s36jshem_hpc/sealion/runs/corrected_newick_output_{now_format}'
+tq_dist = '/home/s36jshem_hpc/sealion/runs'
+graph_location = f"/home/s36jshem_hpc/sealion/runs/tree_graphs/{now_format}"
+graph_correct_outputs(newick_path, user_data, tq_dist, graph_location)
 
-graph_correct_outputs(f'/home/s36jshem_hpc/sealion/runs/tree_output_{now_format}', user_data, '/home/s36jshem_hpc/sealion/runs', f"/home/s36jshem_hpc/sealion/runs/tree_graphs/{user_data['tree']}")
 
 
-def make_clade_files(fasta_path, clade_path):
 
-    if not os.path.exists(clade_path):
-        os.makedirs(clade_path)
 
-    def extract_number(file_name):
-        match = re.search(r'\d+', file_name)
-        return int(match.group()) if match else -1
 
-    files = sorted(
-        [f for f in os.listdir(fasta_path) if f.startswith('fasta') and f.endswith('.fas')],
-        key=extract_number)
 
-    groups = ["A", "B", "C", "D"]
-    sequences = {group: [] for group in groups}  # Dictionary to store sequences for each group
 
-    for file_name in files:
-        file_path = os.path.join(fasta_path, file_name)
-        with open(file_path, 'r') as file:
-            lines = file.readlines()
-            for index, line in enumerate(lines):
-                for group in groups:  # Check all groups                
-                    if line.strip().startswith(f'>{group}'):
-                        if index + 1 < len(lines):  # Ensure there's a sequence line after
-                            sequences[group].append(lines[index + 1].strip())
 
-    chunk_size = 10
-    num_chunks = len(sequences[group])/chunk_size
-    
-    for i in range(int(num_chunks)):
-        output_file = os.path.join(clade_path, f"clade_file_{i+1}.fas")
-        
-        with open(output_file, 'w') as f:
-            for group in groups:
-                start = i * chunk_size
-                end = start + chunk_size
-                sublist = sequences[f'{group}'][start:end]
-                for index, seq in enumerate(sublist, start=start + 1):
-                    f.write(f">{group}{index}\n{seq}\n") 
 
-        clade_definition_file = os.path.join(clade_path, f"clade_def_file_{i+1}.txt")    
-        with open(clade_definition_file, 'w') as f:
-            for group, seq_list in sequences.items():
-                f.write(f'{group}, ')
-                for q in range(start + 1, end + 1):
-                    if q == start + len(sublist):
-                        f.write(f'{group}{q} ')    
-                    else:
-                        f.write(f'{group}{q}, ')
-                f.write('\n')
-    
-    
-    return "Sequences extracted and saved! "
 
-fasta_path = f'/home/s36jshem_hpc/sealion/runs/iq_output_{now_format}'
-clade_path = f'/home/s36jshem_hpc/sealion/runs/clade_files_{now_format}'
 
-make_clade_files(fasta_path, clade_path)
+
+
+
+
+
+
+
+
+
 '''
+def mv_clade_files(clade_dir, sealion_location): 
+    This function moves the files from the clade_path to the sealion location, then runs the sealion script, this is an optionable
+    function if you'd like to run each file one at a time and not in parallel.
+      
+    clade_def_files = [f for f in os.listdir(clade_dir) if f.startswith('clade_def_file') and f.endswith('.txt')]
+    clade_files = [f for f in os.listdir(clade_dir) if f.startswith('clade_file') and f.endswith('.fas')]
+
+
+    clade_def_files.sort(key=lambda x: tuple(map(int, re.search(r'clade_def_file_(\d+)_(\d+)\.txt', x).groups())))
+    clade_files.sort(key=lambda x: tuple(map(int, re.search(r'clade_file_(\d+)_(\d+)\.fas', x).groups())))
+
+    if len(clade_def_files) != len(clade_files):
+        print("Mismatch between .txt and .fas files")
+        return
+
+    for i, (fas_fn, txt_fn) in enumerate(zip(clade_files, clade_def_files), start=1):
+        src_fas = os.path.join(clade_dir, fas_fn)
+        src_txt = os.path.join(clade_dir, txt_fn)
+
+        try:
+            shutil.move(src_fas, sealion_location)
+            shutil.move(src_txt, sealion_location)
+
+            os.chdir(sealion_location)
+            cmd = (
+                f"apptainer exec SeaLion_container_dir sealion1.pl -i {fas_fn} -p {txt_fn} -o D -M '10000' -l '10000' -prt 1 -s"
+            )
+            print(f"→ Running: {cmd}")
+            os.system(cmd)
+
+        except Exception as e:
+            print(f"Error processing pair #{i} ({fas_fn}, {txt_fn}): {e}")
+
+    print(f"Processed {i} file pairs through SeaLion")
+
+
+mv_clade_files(
+    f"/home/s36jshem_hpc/sealion/runs/clade_files_{now_format}",
+    "/home/s36jshem_hpc/sealion/sealion_script"
+)
+
 def make_clade_files(fasta_path, clade_path, sealion_directory):
     this function makes the clade files in a random partitioned manner, randomizing the clade_def file and the clade file for each
     gc step, e.g 1-100, 101-200... then moves them to the sealion portion of the script
@@ -613,49 +743,7 @@ fasta_path = f'/home/s36jshem_hpc/sealion/runs/iq_output_{now_format}'
 clade_path = f'/home/s36jshem_hpc/sealion/runs/clade_files_{now_format}'
 sealion_directory = f'/home/s36jshem_hpc/sealion/sealion_script/runs_dir'
 make_clade_files(fasta_path, clade_path, sealion_directory)
-
-def mv_clade_files(clade_dir, sealion_location): 
-    This function moves the files from the clade_path to the sealion location, then runs the sealion script, this is an optionable
-    function if you'd like to run each file one at a time and not in parallel.
-      
-    clade_def_files = [f for f in os.listdir(clade_dir) if f.startswith('clade_def_file') and f.endswith('.txt')]
-    clade_files = [f for f in os.listdir(clade_dir) if f.startswith('clade_file') and f.endswith('.fas')]
-
-
-    clade_def_files.sort(key=lambda x: tuple(map(int, re.search(r'clade_def_file_(\d+)_(\d+)\.txt', x).groups())))
-    clade_files.sort(key=lambda x: tuple(map(int, re.search(r'clade_file_(\d+)_(\d+)\.fas', x).groups())))
-
-    if len(clade_def_files) != len(clade_files):
-        print("Mismatch between .txt and .fas files")
-        return
-
-    for i, (fas_fn, txt_fn) in enumerate(zip(clade_files, clade_def_files), start=1):
-        src_fas = os.path.join(clade_dir, fas_fn)
-        src_txt = os.path.join(clade_dir, txt_fn)
-
-        try:
-            shutil.move(src_fas, sealion_location)
-            shutil.move(src_txt, sealion_location)
-
-            os.chdir(sealion_location)
-            cmd = (
-                f"apptainer exec SeaLion_container_dir sealion1.pl -i {fas_fn} -p {txt_fn} -o D -M '10000' -l '10000' -prt 1 -s"
-            )
-            print(f"→ Running: {cmd}")
-            os.system(cmd)
-
-        except Exception as e:
-            print(f"Error processing pair #{i} ({fas_fn}, {txt_fn}): {e}")
-
-    print(f"Processed {i} file pairs through SeaLion")
-
-
-mv_clade_files(
-    f"/home/s36jshem_hpc/sealion/runs/clade_files_{now_format}",
-    "/home/s36jshem_hpc/sealion/sealion_script"
-)
 '''
-
 
 
 
