@@ -499,7 +499,8 @@ def shrink_newick(newick_string_location, clade_file_location, new_newick_path):
         reroot_run =  subprocess.run([reroot_command], cwd = reroot_directory, capture_output = True, check=True, text = True, shell = True)
         reroot_output = reroot_run.stdout.strip()
         results[k] = reroot_output
-        shutil.move(k, clade_file_location)
+        dst_path = os.path.join(reroot_directory, k)
+        shutil.move(dst_path, clade_file_location)
 
     sorted_results = dict(sorted(results.items(), key=lambda x: int(re.search(r'clade_def_file_(\d+)', x[0]).group(1))))
 
@@ -529,7 +530,7 @@ def graph_correct_outputs(newick_corrected_path, user_data, tq_dist_path, graph_
 
     newick_strings = []
     for file in sorted(os.listdir(newick_corrected_path), key = extract_number):
-        if file.endswith('treefile'):
+        if file.endswith('txt'):
             file_path = os.path.join(newick_corrected_path, file)
             with open(file_path, 'r') as f:
                 newick_string = f.read().strip()
@@ -537,7 +538,7 @@ def graph_correct_outputs(newick_corrected_path, user_data, tq_dist_path, graph_
     user_newick = user_data['b1']
     
     def stripped_newick(string):
-        return re.sub(r'(:[0-9.e-]+|#[A-Za-z0-9_]+)', '', string)
+        return re.sub(r'([0-9.e-]+|#[A-Za-z0-9_]+)', '', string)
 
     newick_path = '/home/s36jshem_hpc/sealion/runs/'
     newick_file_path = os.path.join(newick_path, 'newickfile1.txt')
@@ -558,10 +559,10 @@ def graph_correct_outputs(newick_corrected_path, user_data, tq_dist_path, graph_
 
  
     # Preparing the data for graphing
-    gc_contents = [47 + (i // 100) * 4 for i in range(600)]
+    gc_contents = [47 + (i // 10) * 4 for i in range(60)]
     gc_content_labels = [f"{47 + i * 4}%" for i in range(6)]
-    correct_counts = [results[i:i + 100].count(0) for i in range(0, 600, 100)]
-    incorrect_counts = [results[i:i + 100].count(1) for i in range(0, 600, 100)]
+    correct_counts = [results[i:i + 10].count(0) for i in range(0, 60, 10)]
+    incorrect_counts = [results[i:i + 10].count(1) for i in range(0, 60, 10)]
     percent_counts = [(correct / (correct + incorrect)) if (correct + incorrect) > 0 else 0 for correct, incorrect in zip(correct_counts, incorrect_counts)]
 
     
@@ -584,8 +585,8 @@ def graph_correct_outputs(newick_corrected_path, user_data, tq_dist_path, graph_
     formatted_newick_tree = '\n'.join(textwrap.wrap(user_data['tree'], width=40))
     formatted_newick_model = '\n'.join(textwrap.wrap(user_data['b1'], width=40))
 
-    legend_label = f'Newick Branch Lengths:\n{formatted_newick_tree}\n\nNewick Model:\n{formatted_newick_model}'
-    custom_legend = Line2D([0], [0], linestyle = 'None', color='green', label = legend_label)
+    #legend_label = f'Newick Branch Lengths:\n{formatted_newick_tree}\n\nNewick Model:\n{formatted_newick_model}'
+    #custom_legend = Line2D([0], [0], linestyle = 'None', color='green', label = legend_label)
 
     plt.plot(x, y, linestyle = '--', label = '_nolegend_')
 
@@ -595,9 +596,8 @@ def graph_correct_outputs(newick_corrected_path, user_data, tq_dist_path, graph_
     plt.ylabel('% of Correct Newick Tree Topologies')
     plt.title('Correct Newick String Matches by GC Content')
     plt.xticks(x, gc_content_labels)
-    plt.legend(handles = [custom_legend], loc = 'upper right', fontsize = 'x-small')
+    #plt.legend(handles = [custom_legend], loc = 'upper right', fontsize = 'x-small')
 
-    
     plt.savefig(os.path.join(graph_path, f'{now_format}.png'), format='png')
     plt.show()
 
