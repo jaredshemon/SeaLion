@@ -518,7 +518,7 @@ def shrink_newick(newick_string_location):
     clade_file_location = f'/home/s36jshem_hpc/sealion/sealion_script/runs_dir/clade_files_{now_format}_{BP}'
     results = {}
     reroot_directory = '/home/s36jshem_hpc/sealion'
-    for k, v in updated_newick_strings.items():
+    for k, v in updated_newick_strings.items(): ##### All of this below only works SOMETIMES when this script is run in the terminal command line, it works well as an HPC cluster job
         full_clade = os.path.join(clade_file_location, k)
         shutil.move(full_clade, reroot_directory)
         command = f'python3 ESofT.py "{v}" {k}'
