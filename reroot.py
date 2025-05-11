@@ -1,28 +1,34 @@
 #!usr/bin/env python3 
 # -*- coding: utf-8 -*-
 
-import os
+
+import json
+import random
 import re
+import shutil 
+import os
 import subprocess
-import shutil
-import matplotlib
+from datetime import datetime
+import logging
+import sys
+import traceback
 import matplotlib.pyplot as plt
 import numpy as np
 import textwrap
 from matplotlib.lines import Line2D
-from datetime import datetime
 from numpy import savetxt
 
 now = datetime.now()
 now_format = now.strftime("%Y-%m-%d_%H-%M-%S")
 
-'''
+
 def shrink_newick(newick_string_location):
-    This function should shrink the newick string down without the branch lengths, then it will run it through juliannes python script 'ESOFT' then it 
-    will run it through reroot
+    '''This function should shrink the newick string down without the branch lengths, then it will run it through juliannes python script 'ESOFT' then it 
+    will run it through reroot'''
+
     newick_files = [f for f in os.listdir(newick_string_location)]
     
-    full_path = [os.path.join(tree_location, f) for f in newick_files]
+    full_path = [os.path.join(newick_string_location, f) for f in newick_files]
     
     newick_strings_files = {}
     for file in full_path:
@@ -30,9 +36,10 @@ def shrink_newick(newick_string_location):
             for line in f:
                 line = re.sub(r':[0-9.]+', '', line)
                 newick_strings_files[file] = line.strip()
+    print(newick_strings_files)
 
     #### This below replaces the fasta file with the corresponding clade file, so we can run the subprocess command below    
-    clade_def = [f for f in os.listdir('/home/s36jshem_hpc/sealion/sealion_script/runs_dir/clade_files_2025-05-05_19-48-29') if f.startswith('clade_def')]
+    clade_def = [f for f in os.listdir('/home/s36jshem_hpc/sealion/sealion_script/runs_dir/clade_files_2025-05-07_23-12-42') if f.startswith('clade_def')]
 
     updated_newick_strings = {}
     for clade_file in clade_def:
@@ -47,26 +54,26 @@ def shrink_newick(newick_string_location):
                     if fasta_num == clade_num:
                         updated_newick_strings[clade_file] = newick
                         #print(f"Matched Clade {clade_file} with Fasta {fasta_file}")
-    clade_file_location = '/home/s36jshem_hpc/sealion/sealion_script/runs_dir/clade_files_2025-05-05_19-48-29'
+    clade_file_location = '/home/s36jshem_hpc/sealion/sealion_script/runs_dir/clade_files_2025-05-07_23-12-42'
     results = {}
     reroot_directory = '/home/s36jshem_hpc/sealion'
     for k, v in updated_newick_strings.items():
         full_clade = os.path.join(clade_file_location, k)
         shutil.move(full_clade, reroot_directory)
         command = f'python3 ESofT.py "{v}" {k}'
-        esoft_run = subprocess.run([command], cwd = reroot_directory, capture_output = True, check=True, text = True, shell = True)
+        esoft_run = subprocess.run(command, cwd = reroot_directory, capture_output = True, check=True, text = True, shell = True)
         output = esoft_run.stdout.strip()
         reroot_command = f'./reroot.o "{output}" D {k}'
-        reroot_run =  subprocess.run([reroot_command], cwd = reroot_directory, capture_output = True, check=True, text = True, shell = True)
+        reroot_run =  subprocess.run(reroot_command, cwd = reroot_directory, capture_output = True, check=True, text = True, shell = True)
         reroot_output = reroot_run.stdout.strip()
         results[k] = reroot_output
         dst_path = os.path.join(reroot_directory, k)
-        shutil.move(k, clade_file_location)
+        shutil.move(dst_path, clade_file_location)
 
     sorted_results = dict(sorted(results.items(), key=lambda x: int(re.search(r'clade_def_file_(\d+)', x[0]).group(1))))
     print(sorted_results)
     
-    newick_path = '/home/s36jshem_hpc/sealion/runs/corrected_newick_output_2025-05-05_19-48-29'
+    newick_path = f'/home/s36jshem_hpc/sealion/runs/corrected_newick_output_{now_format}'
     if not os.path.exists(newick_path):
         os.makedirs(newick_path)
 
@@ -78,12 +85,12 @@ def shrink_newick(newick_string_location):
             f.write(rerooted_newick.strip())
     
 
-tree_location = '/home/s36jshem_hpc/sealion/runs/tree_output_2025-05-05_19-48-29'
+tree_location = '/home/s36jshem_hpc/sealion/runs/tree_output_2025-05-07_23-12-42'
 shrink_newick(tree_location)
-'''
+
 
 def graph_correct_outputs(newick_corrected_path, user_data, tq_dist_path, graph_path):
-    ''' This function should take the newick string from our tree file, cross check it with the original, then graphs the correct ones
+    '''This function should take the newick string from our tree file, cross check it with the original, then graphs the correct ones
     vs the incorrect ones.'''
     def extract_number(file_name):
         match = re.search(r'\d+', file_name)
@@ -124,7 +131,9 @@ def graph_correct_outputs(newick_corrected_path, user_data, tq_dist_path, graph_
     gc_contents = [47 + (i // 10) * 4 for i in range(60)]
     gc_content_labels = [f"{47 + i * 4}%" for i in range(6)]
     correct_counts = [results[i:i + 10].count(0) for i in range(0, 60, 10)]
+    print(correct_counts)
     incorrect_counts = [results[i:i + 10].count(1) for i in range(0, 60, 10)]
+    print(incorrect_counts)
     percent_counts = [(correct / (correct + incorrect)) if (correct + incorrect) > 0 else 0 for correct, incorrect in zip(correct_counts, incorrect_counts)]
 
     
@@ -165,7 +174,7 @@ def graph_correct_outputs(newick_corrected_path, user_data, tq_dist_path, graph_
     plt.show()
 
 user_data = "(((A1#F81,B1#F81_2)#F81,C1#F81_2)#F81,D1#F81)#F81;"
-newick_path = f'/home/s36jshem_hpc/sealion/runs/corrected_newick_output_2025-05-06_10-12-51'
+newick_path = f'/home/s36jshem_hpc/sealion/runs/corrected_newick_output_{now_format}'
 tq_dist = '/home/s36jshem_hpc/sealion/runs'
 graph_location = f"/home/s36jshem_hpc/sealion/runs/tree_graphs/{now_format}"
 graph_correct_outputs(newick_path, user_data, tq_dist, graph_location)

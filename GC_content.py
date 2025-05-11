@@ -3,7 +3,7 @@
 import collections
 
 # Path to the FASTA file
-path = '/home/s36jshem_hpc/sealion/runs/iq_output_2025-05-06_10-12-51/fastaout35.fas'
+path = '/home/s36jshem_hpc/sealion/runs/iq_output_2025-05-09_11-25-45_5000/fastaout5.fas'
 
 # Read file
 with open(path, 'r') as f:

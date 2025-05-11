@@ -21,6 +21,7 @@ import numpy as np
 import textwrap
 from matplotlib.lines import Line2D
 from numpy import savetxt
+import errno
 
 now_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
@@ -46,8 +47,11 @@ sys.excepthook = handle_exception
 
 # Read user data from a file
 def read_user_data(user_file_path):
-    '''This reads the userfile information into a dictionary, along with the models which need to be handled
-    separately so that they don't overwrite eachother'''
+    ##########################################################################################################################################
+    ###### This reads the userfile information into a dictionary, along with the models which need to be handled #############################
+    ###### separately so that they don't overwrite eachother     #############################################################################
+    ##########################################################################################################################################
+
    
     user_data = {}
     model_counter = 1
@@ -85,8 +89,11 @@ def read_user_data(user_file_path):
 
 # Validate user data against the template
 def validate_user_data(user_data, json_template):
-    '''This funciion validates that whatever is in the ancestralprint, output, and model_name parameters is in 
-    the json template'''
+    ##########################################################################################################################
+    ##### This funciion validates that whatever is in the ancestralprint, output, and model_name parameters is in ############
+    ##### the json template                                      #############################################################
+    ##########################################################################################################################
+
     valid_ancestralprints = json_template["ancestralprint"]
     valid_outputs = json_template["output"]
     valid_models = json_template["models"].keys()
@@ -109,9 +116,11 @@ def validate_user_data(user_data, json_template):
 
 # Update the JSON configuration template with user data
 def update_json_structure(json_data, user_data, iteration):
-    '''This function places the dictionary: user_data's information into the json template, the model function at the 
-    bottom is needed so the user can input minGC, maxGC, and stepGC, and get a steadily increasing GC content according 
-    to the min/max/step every 100 iterations'''
+    ###################################################################################################################################
+    #### This function places the dictionary: user_data's information into the json template, the model function at the     ###########
+    #### bottom is needed so the user can input minGC, maxGC, and stepGC, and get a steadily increasing GC content according ##########
+    #### to the min/max/step every 100 iterations               #######################################################################
+    ###################################################################################################################################
     # Update the JSON structure with the user data
     if 'TYPE' in user_data:
         json_data['TYPE'][0] = user_data['TYPE']
@@ -186,8 +195,10 @@ def update_json_structure(json_data, user_data, iteration):
 
 # Generate the configuration file
 def generate_config(json_data, output_path):
-    '''This function takes the combined json/user_file data and places it into a formatted template for INDELIBLE,
-    the output_path is whichever you choose. MAKE SURE YOU KNOW WHERE YOU'RE PLACING IT'''
+    ###################################################################################################################################
+    ######## This function takes the combined json/user_file data and places it into a formatted template for INDELIBLE, ##############
+    ######## the output_path is whichever you choose. MAKE SURE YOU KNOW WHERE YOU'RE PLACING IT ######################################
+    ###################################################################################################################################
 
     output_lines = []
 
@@ -237,11 +248,13 @@ def generate_config(json_data, output_path):
         for line in output_lines:
             f.write(line)
     print(f"Configuration file {output_path} generated successfully.")
-
-# Paths to the user_file, json template, the dictionaries they go into, and output files
-'''This is where you should delegate the proper paths, make sure to keep the file names the same, only change
-    the preceeding path names'''
     
+###################################################################################################################################
+# Paths to the user_file, json template, the dictionaries they go into, and output files                            ###############
+##### This is where you should delegate the proper paths, make sure to keep the file names the same, only change ##################
+##### the preceeding path names         ###########################################################################################       
+###################################################################################################################################
+
 
 user_file_path = '/home/s36jshem_hpc/sealion/sealion_files/sea_lion/user_file_v2.txt'
 json_template_path = '/home/s36jshem_hpc/sealion/sealion_files/INDEL_TEMPLATE_v2.json'
@@ -260,8 +273,11 @@ validate_user_data(user_data, json_data) ##json_data is the combined user_file i
 #I added a time stamp to each folder generated, so you always know when you started the run
 now = datetime.now()
 now_format = now.strftime("%Y-%m-%d_%H-%M-%S")
+#I also added the sequence length from the user file to give more details on the script run
+BP = user_data['SEQ_LENGTH']
+print(BP)
 
-temp_path = f'/home/s36jshem_hpc/sealion/runs/indelible_input_{now_format}'
+temp_path = f'/home/s36jshem_hpc/sealion/runs/indelible_input_{now_format}_{BP}'
 try:
     # exist_ok=True suppresses the exception if folder already exists
     indelible_input_path = temp_path
@@ -278,9 +294,10 @@ for i in range(1, 61):
     generate_config(updated_json_data, output_file_path)
 
 def rename_indel(directory_path, indel_path):
-    '''This function iterates over all the files you generated earlier, renames them so they can run 
-    in indelible, then renames them back following the run ensuring you don't loose track'''
-
+    #################################################################################################################  
+    ####This function iterates over all the files you generated earlier, renames them so they can run       #########
+    ####in indelible, then renames them back following the run ensuring you don't loose track          ##############
+    #################################################################################################################
     
     control_files = []
     for f in os.listdir(directory_path):
@@ -307,12 +324,13 @@ def rename_indel(directory_path, indel_path):
         print(f'{i} processed through Indelible, then renamed to original')
 
 indel_path = '/home/s36jshem_hpc/sealion/runs'
-directory_path = f'/home/s36jshem_hpc/sealion/runs/indelible_input_{now_format}'
+directory_path = f'/home/s36jshem_hpc/sealion/runs/indelible_input_{now_format}_{BP}'
 rename_indel(directory_path, indel_path)
 
 def move_to_indel_output(model_path, output_directory):
-    '''This function moves the output files generated by Indelible to the specified output directory.'''
- 
+    ##########################################################################################################################
+    #### This function moves the output files generated by Indelible to the specified output directory    ################
+    ##########################################################################################################################
     if not os.path.exists(output_directory):
         os.makedirs(output_directory)
         
@@ -323,19 +341,20 @@ def move_to_indel_output(model_path, output_directory):
             shutil.move(src_path, dst_path)
 
 
-indelible_output_path = f'/home/s36jshem_hpc/sealion/runs/indelible_output_{now_format}'
+indelible_output_path = f'/home/s36jshem_hpc/sealion/runs/indelible_output_{now_format}_{BP}'
 model_path  = f'/home/s36jshem_hpc/sealion/runs/'
 move_to_indel_output(model_path, indelible_output_path)
 
 def rename_seq_fasta(indelible_output_path, IQTREE_path, iq_model):
-    '''This function moves the correct files to iq_output folder, iterates over each file in the iq_output folder, 
-       renames the sequence identifiers so they're unique (this is only if your file has repeat sequences 
-       as they must be unique for IQ-TREE), and then runs each file through IQ-TREE.'''
-        
-    indelible_output_path = f'/home/s36jshem_hpc/sealion/runs/indelible_output_{now_format}'
-    IQTREE_path = f'/home/s36jshem_hpc/sealion/runs/iq_output_{now_format}'
-    
+     ##########################################################################################################################
+     #### This function moves the correct files to iq_output folder, iterates over each file in the iq_output folder, #########
+     #### renames the sequence identifiers so they're unique (this is only if your file has repeat sequences ##################
+     ##### as they must be unique for IQ-TREE), and then runs each file through IQ-TREE. ######################################
+     ##########################################################################################################################  
 
+    indelible_output_path = f'/home/s36jshem_hpc/sealion/runs/indelible_output_{now_format}_{BP}'
+    IQTREE_path = f'/home/s36jshem_hpc/sealion/runs/iq_output_{now_format}_{BP}'
+    
     # Move files from indelible output to IQ-TREE input
     os.makedirs(IQTREE_path, exist_ok=True)
     pattern = re.compile(r'fastaout\d+\.fas$')
@@ -367,19 +386,23 @@ def rename_seq_fasta(indelible_output_path, IQTREE_path, iq_model):
             print(f"Error loading file properly: {e}")
 
 
-iqtree_output_path = f'/home/s36jshem_hpc/sealion/runs/iq_output_{now_format}'
+iqtree_output_path = f'/home/s36jshem_hpc/sealion/runs/iq_output_{now_format}_{BP}'
 rename_seq_fasta(
     indelible_output_path,
     iqtree_output_path,
     iq_model)
 
-##The IQTREE outputs 4200 files, you have 600 indelible inputs, you then place one GTRout file into the iq_output folder
-##and it generates 7 files, so 600 * 7 = 4200
-##The files are named GTRout1.fas, GTRout2.fas, etc.
+#################################################################################################################################
+##The IQTREE outputs 420 files, you have 60 indelible inputs, you then place one fastaout file into the iq_output folder ########
+##and it generates 7 files, so 60 * 7 = 420              ########################################################################                                                               #########
+##The files are named fastaout1.fas, fastaout2.fas, etc.   ######################################################################                                                             #########
+#################################################################################################################################
 
 def move_tree_files(iqtree_output_path, tree_output_path):
-    '''This function moves the tree files generated by IQ-TREE to the specified tree_output directory.'''
-    
+    #################################################################################################################################
+    ####This function moves the tree files generated by IQ-TREE to the specified tree_output directory. #############################
+    #################################################################################################################################
+
     if not os.path.exists(tree_output_path):
         os.makedirs(tree_output_path)   
     
@@ -390,9 +413,13 @@ def move_tree_files(iqtree_output_path, tree_output_path):
             shutil.move(src_path, dst_path)
 
         
-move_tree_files(iqtree_output_path, f'/home/s36jshem_hpc/sealion/runs/tree_output_{now_format}')
+move_tree_files(iqtree_output_path, f'/home/s36jshem_hpc/sealion/runs/tree_output_{now_format}_{BP}')
 
 def make_clade_files(fasta_path, clade_path, sealion_directory):
+    #################################################################################################################################
+    ### This function makes the clade files and clade def files, each file iterates to 10 then resets to match the order from the ###
+    ######### I originally had it count up to 600 (10 sets of 60), but it doesn't align with the tree outputs for comparison ########
+    #################################################################################################################################
 
     if not os.path.exists(clade_path):
         os.makedirs(clade_path)
@@ -450,27 +477,30 @@ def make_clade_files(fasta_path, clade_path, sealion_directory):
         
     return "Sequences extracted and saved! "
 
-fasta_path = f'/home/s36jshem_hpc/sealion/runs/iq_output_{now_format}'
-clade_path = f'/home/s36jshem_hpc/sealion/runs/clade_files_{now_format}'
-sealion_directory = f'/home/s36jshem_hpc/sealion/sealion_script/runs_dir'
+fasta_path = f'/home/s36jshem_hpc/sealion/runs/iq_output_{now_format}_{BP}'
+clade_path = f'/home/s36jshem_hpc/sealion/runs/clade_files_{now_format}_{BP}'
+sealion_directory = f'/home/s36jshem_hpc/sealion/sealion_script/runs_dir/'
 make_clade_files(fasta_path, clade_path, sealion_directory)
 
-def shrink_newick(newick_string_location, clade_file_location, new_newick_path):
-    '''This function should shrink the newick string down without the branch lengths, then it will run it through juliannes python script 'ESOFT' then it 
-    will run it through reroot, after the newick string is corrected it will be placed in a new folder'''
+def shrink_newick(newick_string_location):
+    ################################################################################################################################################################
+    ##### This function should shrink the newick string down without the branch lengths, then it will run it through juliannes python script 'ESOFT' then it #######
+    ##### will run it through reroot, then write the corrected newick strings into a new file                   ####################################################
+    ################################################################################################################################################################
     newick_files = [f for f in os.listdir(newick_string_location)]
     
-    full_path = [os.path.join(tree_location, f) for f in newick_files]
+    full_path = [os.path.join(newick_string_location, f) for f in newick_files]
     
     newick_strings_files = {}
     for file in full_path:
         with open(file, 'r') as f:
             for line in f:
-                line = re.sub(r':[0-9.]+', '', line)
-                newick_strings_files[file] = line.strip()
+                line1 = re.sub(r':-?\d+(?:\.\d+)?(?:[eE][-+]?\d+)?', '', line)
+                newick_strings_files[file] = line1.strip()
+    print(newick_strings_files)
 
     #### This below replaces the fasta file with the corresponding clade file, so we can run the subprocess command below    
-    clade_def = [f for f in os.listdir(clade_file_location) if f.startswith('clade_def')]
+    clade_def = [f for f in os.listdir(f'/home/s36jshem_hpc/sealion/sealion_script/runs_dir/clade_files_{now_format}_{BP}') if f.startswith('clade_def')]
 
     updated_newick_strings = {}
     for clade_file in clade_def:
@@ -485,27 +515,28 @@ def shrink_newick(newick_string_location, clade_file_location, new_newick_path):
                     if fasta_num == clade_num:
                         updated_newick_strings[clade_file] = newick
                         #print(f"Matched Clade {clade_file} with Fasta {fasta_file}")
-    
+    clade_file_location = f'/home/s36jshem_hpc/sealion/sealion_script/runs_dir/clade_files_{now_format}_{BP}'
     results = {}
     reroot_directory = '/home/s36jshem_hpc/sealion'
     for k, v in updated_newick_strings.items():
         full_clade = os.path.join(clade_file_location, k)
         shutil.move(full_clade, reroot_directory)
-
         command = f'python3 ESofT.py "{v}" {k}'
-        esoft_run = subprocess.run([command], cwd = reroot_directory, capture_output = True, check=True, text = True, shell = True)
+        esoft_run = subprocess.run(command, cwd = reroot_directory, capture_output = True, check=True, text = True, shell = True)
         output = esoft_run.stdout.strip()
         reroot_command = f'./reroot.o "{output}" D {k}'
-        reroot_run =  subprocess.run([reroot_command], cwd = reroot_directory, capture_output = True, check=True, text = True, shell = True)
+        reroot_run =  subprocess.run(reroot_command, cwd = reroot_directory, capture_output = True, check=True, text = True, shell = True)
         reroot_output = reroot_run.stdout.strip()
         results[k] = reroot_output
         dst_path = os.path.join(reroot_directory, k)
         shutil.move(dst_path, clade_file_location)
 
     sorted_results = dict(sorted(results.items(), key=lambda x: int(re.search(r'clade_def_file_(\d+)', x[0]).group(1))))
-
-    if not os.path.exists(new_newick_path):
-        os.makedirs(new_newick_path)
+    print(sorted_results)
+    
+    newick_path = f'/home/s36jshem_hpc/sealion/runs/corrected_newick_output_{now_format}_{BP}'
+    if not os.path.exists(newick_path):
+        os.makedirs(newick_path)
 
     for clade_def, rerooted_newick in sorted_results.items():
         number_of_file = re.search(r'clade_def_file_(\d+)', clade_def)
@@ -513,16 +544,17 @@ def shrink_newick(newick_string_location, clade_file_location, new_newick_path):
         output_file = os.path.join(newick_path, f'corrected_newick_{number_for_file}.txt')
         with open(output_file, 'w') as f:
             f.write(rerooted_newick.strip())
+    
 
-newick_path = f'/home/s36jshem_hpc/sealion/runs/corrected_newick_output_{now_format}'
-clade_location = f'/home/s36jshem_hpc/sealion/sealion_script/runs_dir/clade_files_{now_format}'
-tree_location = f'/home/s36jshem_hpc/sealion/runs/tree_output_{now_format}'
-shrink_newick(tree_location, clade_location, newick_path)
+tree_location = f'/home/s36jshem_hpc/sealion/runs/tree_output_{now_format}_{BP}'
+shrink_newick(tree_location)
 
 
 def graph_correct_outputs(newick_corrected_path, user_data, tq_dist_path, graph_path):
-    ''' This function should take the newick string from our tree file, cross check it with the original, then graphs the correct ones
-    vs the incorrect ones.'''
+    #############################################################################################################################################
+    ###This function should take the newick string from our tree file, cross check it with the original, then graphs the correct ones ###########
+    #### vs the incorrect ones.                                    ##############################################################################
+    #############################################################################################################################################
     def extract_number(file_name):
         match = re.search(r'\d+', file_name)
         return int(match.group()) if match else -1
@@ -535,8 +567,7 @@ def graph_correct_outputs(newick_corrected_path, user_data, tq_dist_path, graph_
             with open(file_path, 'r') as f:
                 newick_string = f.read().strip()
                 newick_strings.append(newick_string)
-    user_newick = user_data['b1']
-    
+    user_newick = user_data
     def stripped_newick(string):
         return re.sub(r'([0-9.e-]+|#[A-Za-z0-9_]+)', '', string)
 
@@ -544,25 +575,30 @@ def graph_correct_outputs(newick_corrected_path, user_data, tq_dist_path, graph_
     newick_file_path = os.path.join(newick_path, 'newickfile1.txt')
     user_newick_path = os.path.join(newick_path, 'newickfile_user.txt' )
     results = []
-
+    
 
     for i in newick_strings:
         with open(newick_file_path, 'w') as f:
+            print(stripped_newick(i))
             f.write(stripped_newick(i))
         with open(user_newick_path, 'w') as f:
+            print(stripped_newick(user_newick))
             f.write(stripped_newick(user_newick))
 
         command = f"/home/s36jshem_hpc/local/bin/quartet_dist {newick_file_path} {user_newick_path}"
         result = subprocess.run(command, cwd=tq_dist_path, shell=True, capture_output = True, text = True)
         output = result.stdout.strip()
         results.append(int(output))
-
- 
+    
+    print(results)
+    print('HERE WE ARE')
     # Preparing the data for graphing
     gc_contents = [47 + (i // 10) * 4 for i in range(60)]
     gc_content_labels = [f"{47 + i * 4}%" for i in range(6)]
     correct_counts = [results[i:i + 10].count(0) for i in range(0, 60, 10)]
+    print(correct_counts)
     incorrect_counts = [results[i:i + 10].count(1) for i in range(0, 60, 10)]
+    print(incorrect_counts)
     percent_counts = [(correct / (correct + incorrect)) if (correct + incorrect) > 0 else 0 for correct, incorrect in zip(correct_counts, incorrect_counts)]
 
     
@@ -582,8 +618,8 @@ def graph_correct_outputs(newick_corrected_path, user_data, tq_dist_path, graph_
     csv_path = os.path.join(graph_path, f'{now_format}.csv')
     savetxt(csv_path, numpy_csv, delimiter=',') 
 
-    formatted_newick_tree = '\n'.join(textwrap.wrap(user_data['tree'], width=40))
-    formatted_newick_model = '\n'.join(textwrap.wrap(user_data['b1'], width=40))
+    #formatted_newick_tree = '\n'.join(textwrap.wrap(user_data['tree'], width=40))
+    #formatted_newick_model = '\n'.join(textwrap.wrap(user_data['b1'], width=40))
 
     #legend_label = f'Newick Branch Lengths:\n{formatted_newick_tree}\n\nNewick Model:\n{formatted_newick_model}'
     #custom_legend = Line2D([0], [0], linestyle = 'None', color='green', label = legend_label)
@@ -598,12 +634,14 @@ def graph_correct_outputs(newick_corrected_path, user_data, tq_dist_path, graph_
     plt.xticks(x, gc_content_labels)
     #plt.legend(handles = [custom_legend], loc = 'upper right', fontsize = 'x-small')
 
+    
     plt.savefig(os.path.join(graph_path, f'{now_format}.png'), format='png')
     plt.show()
 
-newick_path = f'/home/s36jshem_hpc/sealion/runs/corrected_newick_output_{now_format}'
+user_data = "(((A1#F81,B1#F81_2)#F81,C1#F81_2)#F81,D1#F81)#F81;"
+newick_path = f'/home/s36jshem_hpc/sealion/runs/corrected_newick_output_{now_format}_{BP}'
 tq_dist = '/home/s36jshem_hpc/sealion/runs'
-graph_location = f"/home/s36jshem_hpc/sealion/runs/tree_graphs/{now_format}"
+graph_location = f"/home/s36jshem_hpc/sealion/runs/tree_graphs/{now_format}_{BP}"
 graph_correct_outputs(newick_path, user_data, tq_dist, graph_location)
 
 
@@ -618,13 +656,154 @@ graph_correct_outputs(newick_path, user_data, tq_dist, graph_location)
 
 
 
+#####################################################################
+########### Graveyard of coding pasts ###############################     
+#####################################################################      
+#####      .-"      "-.  ############################################
+#####     /            \ ############################################
+#####    |              |############################################
+#####    |,  .-.  .-.  ,| ###########################################
+#####    | )(_o/  \o_)( | ###########################################
+#####    |/     /\     \| ###########################################
+#####    (_     ^^     _) ###########################################
+#####     \__|IIIIII|__/  ###########################################
+#####      | \IIIIII/ |   ###########################################
+#####      \          /   ###########################################
+#####       `--------`  #############################################
+##################################################################### 
+#####################################################################
+#####################################################################
 
+'''
+def shrink_newick(newick_string_location):
+    ###############################################################################################################################################
+    #### This function should shrink the newick string down without the branch lengths, then create a dictionary with the fasta file location #####
+    ###############################################################################################################################################
+    newick_files = [f for f in os.listdir(newick_string_location)]
 
+    full_path = [os.path.join(newick_string_location, f) for f in newick_files]
+    newick_strings_files = {}
+    for file in full_path:
+        if file.endswith('treefile'):
+            with open(file, 'r') as f:
+                for line in f:
+                    line = re.sub(r':[0-9.]+', '', line)
+                    newick_strings_files[file] = line.strip()
+    
+    return newick_strings_files
 
+newick_string_location = f'/home/s36jshem_hpc/sealion/runs/tree_output_{now_format}'
+newick_strings_files = shrink_newick(newick_string_location)
 
+def clade_file_sub(clade_file_location):
+    #################################################################################################################################
+    #### This below replaces the fasta file with the corresponding clade file, so we can run the subprocess command below ###########  
+    ################################################################################################################################# 
 
+    clade_def = [f for f in os.listdir(clade_file_location) if f.startswith('clade_def')]
+   
 
+    updated_newick_strings = {}
+    for clade_file in clade_def:
+        clade_num_match = re.search(r'clade_def_file_(\d+)', clade_file)
+        if clade_num_match:
+            clade_num = clade_num_match.group(1)
+            for fasta_file, newick in newick_strings_files.items():
+                fasta_num_match = re.search(r'fastaout(\d+)', fasta_file)
+                if fasta_num_match:
+                    fasta_num = fasta_num_match.group(1)
+                    # Match clade number with fasta number
+                    if fasta_num == clade_num:
+                        updated_newick_strings[clade_file] = newick
+                        print(f"Matched Clade {clade_file} with Fasta {fasta_file}")
 
+    return updated_newick_strings
+
+clade_file_location = f'/home/s36jshem_hpc/sealion/sealion_script/runs_dir/clade_files_{now_format}'
+updated_newick_strings = clade_file_sub(clade_file_location)
+
+def run_esoft_step(updated_newick_strings, clade_file_location, reroot_directory):
+    #################################################################################################################################
+    ######This function should run esoft then collect the outputs in a dictionary with the clade file, and the new newick string#####
+    #################################################################################################################################
+    esoft_outputs = {}
+    for clade_file, newick in updated_newick_strings.items():
+        full_clade_path = os.path.join(clade_file_location, clade_file)
+        try:
+            shutil.move(full_clade_path, reroot_directory)
+            print(f"Moved {full_clade_path} -> {reroot_directory}")
+        except OSError as e:
+            if e.errno == errno.EEXIST:
+                print(f"File already exists in destination: {clade_file}, skipping.")
+                continue
+            
+        command = f'python3 ESofT.py "{newick}" {clade_file}'
+        esoft_run = subprocess.run(command, cwd = reroot_directory, capture_output = True, check=True, text = True, shell = True)
+        print(f'Running: {clade_file} with stripped IQTREE newick: {newick}')
+        esoft_output = esoft_run.stdout.strip()
+        esoft_outputs[clade_file] = esoft_output
+        
+
+        os.chdir(reroot_directory)
+        shutil.move(os.path.join(reroot_directory, clade_file), clade_file_location)
+
+    return esoft_outputs
+
+reroot_directory = '/home/s36jshem_hpc/sealion'
+esoft_outputs = run_esoft_step(updated_newick_strings, clade_file_location, reroot_directory )
+
+def run_reroot_step(esoft_outputs, reroot_directory, clade_file_location):
+    #################################################################################################################################
+    ###This function should now run the reroot function, using the outputs from the esoft script which are captured in a dictionary##
+    #################################################################################################################################
+    rerooted_results = {}
+
+    for clade_file, esoft_output in esoft_outputs.items():
+        full_clade_path = os.path.join(clade_file_location, clade_file)
+        try:
+            shutil.move(full_clade_path, reroot_directory)
+            print(f"Moved {full_clade_path} -> {reroot_directory}")
+        except OSError as e:
+            if e.errno == errno.EEXIST:
+                print(f"File already exists in destination: {clade_file}, skipping.")
+                continue
+            
+        reroot_command = f'./reroot.o "{esoft_output}" D {clade_file}'
+        
+        reroot_run =  subprocess.run(reroot_command, cwd = reroot_directory, capture_output = True, check=True, text = True, shell = True)
+        print(f'Running: {clade_file} with esoft newick: {esoft_output}')
+
+        reroot_output = reroot_run.stdout.strip()
+        rerooted_results[clade_file] = reroot_output
+
+        os.chdir(reroot_directory)
+        # move clade file back again in case reroot modified it
+        clade_path = os.path.join(reroot_directory, clade_file)
+        if os.path.exists(clade_path):
+            shutil.move(clade_path, clade_file_location)
+        if not os.path.exists(clade_path):
+            print('Clade path to clade file output incorrectly defined')
+
+    return rerooted_results
+
+rerooted_results = run_reroot_step(esoft_outputs, reroot_directory, clade_file_location)
+
+def write_corrected_newick(rerooted_results, newick_output_directory):
+    
+    os.makedirs(newick_output_dir, exist_ok=True)
+
+    sorted_results = dict(sorted(rerooted_results.items(), key=lambda x: int(re.search(r'clade_def_file_(\d+)', x[0]).group(1))))
+    for clade_def, newick in sorted_results.items():
+        match = re.search(r'clade_def_file_(\d+)', clade_def)
+        if match:
+            file_number = match.group(1)
+            output_file = os.path.join(newick_output_directory, f'corrected_newick_{file_number}.txt')
+            with open(output_file, 'w') as f:
+                f.write(newick.strip())
+
+newick_output_dir = f'/home/s36jshem_hpc/sealion/runs/corrected_newick_output_{now_format}'
+write_corrected_newick(rerooted_results, newick_output_dir)
+'''
 
 '''
 def mv_clade_files(clade_dir, sealion_location): 
@@ -745,7 +924,49 @@ sealion_directory = f'/home/s36jshem_hpc/sealion/sealion_script/runs_dir'
 make_clade_files(fasta_path, clade_path, sealion_directory)
 '''
 
+'''
+def run_e_soft(clade_file_location, reroot_directory):
+    This function will run the clade file dictionary (clade file and the respective newick string), it will move the clade file into the right directory run the newick
+    string, then move the clade file back into the directory and hopefully run that new respective newick string
+    clade_file_location = f'/home/s36jshem_hpc/sealion/sealion_script/runs_dir/clade_files_{now_format}'
+    results = {}
+    reroot_directory = '/home/s36jshem_hpc/sealion'
+    for k, v in updated_newick_strings.items():
+        full_clade = os.path.join(clade_file_location, k)
+        print(full_clade)
+        print(reroot_directory)
+        shutil.move(full_clade, reroot_directory)
+        print(f"Moved {clade_path} -> {reroot_directory}")
+        print(k, v)
+        command = f'python3 ESofT.py "{v}" {k}'
+        esoft_run = subprocess.run(command, cwd = reroot_directory, capture_output = True, check=True, text = True, shell = True)
+        output = esoft_run.stdout.strip()
+        print(output)
+        reroot_command = f'./reroot.o "{output}" D {k}'
+        reroot_run =  subprocess.run(reroot_command, cwd = reroot_directory, capture_output = True, check=True, text = True, shell = True)
+        reroot_output = reroot_run.stdout.strip()
+        results[k] = reroot_output
+        dst_path = os.path.join(reroot_directory, k)
+        print(dst_path)
+        shutil.move(dst_path, clade_file_location)
+    
+    sorted_results = dict(sorted(results.items(), key=lambda x: int(re.search(r'clade_def_file_(\d+)', x[0]).group(1))))
+    print(sorted_results)
 
 
-        
+   
+    newick_path = f'/home/s36jshem_hpc/sealion/runs/corrected_newick_output_{now_format}'
+    if not os.path.exists(newick_path):
+        os.makedirs(newick_path)
 
+    for clade_def, rerooted_newick in sorted_results.items():
+        number_of_file = re.search(r'clade_def_file_(\d+)', clade_def)
+        number_for_file = number_of_file.group(1)
+        output_file = os.path.join(newick_path, f'corrected_newick_{number_for_file}.txt')
+        with open(output_file, 'w') as f:
+            f.write(rerooted_newick.strip())
+    
+
+tree_location = f'/home/s36jshem_hpc/sealion/runs/tree_output_{now_format}'
+shrink_newick(tree_location)
+'''
