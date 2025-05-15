@@ -380,7 +380,7 @@ def rename_seq_fasta(indelible_output_path, IQTREE_path, iq_model):
     for file_name in indel_out_files:
         try:
             file_path = os.path.join(IQTREE_path, file_name)
-            command = f"iqtree2 -s {file_path} -m {iq_model}"
+            command = f"iqtree2 -s {file_path} -m {iq_model} "
             subprocess.run(command, cwd=IQTREE_path, shell=True)
         except Exception as e:
             print(f"Error loading file properly: {e}")
@@ -630,7 +630,7 @@ def graph_correct_outputs(newick_corrected_path, user_data, tq_dist_path, graph_
 
     plt.xlabel('GC Content')
     plt.ylabel('% of Correct Newick Tree Topologies')
-    plt.title('Correct Newick String Matches by GC Content')
+    plt.title('Correct Newick String Matches by GC Content (IQ-TREE)')
     plt.xticks(x, gc_content_labels)
     #plt.legend(handles = [custom_legend], loc = 'upper right', fontsize = 'x-small')
 
@@ -641,7 +641,7 @@ def graph_correct_outputs(newick_corrected_path, user_data, tq_dist_path, graph_
 user_data = "(((A1#F81,B1#F81_2)#F81,C1#F81_2)#F81,D1#F81)#F81;"
 newick_path = f'/home/s36jshem_hpc/sealion/runs/corrected_newick_output_{now_format}_{BP}'
 tq_dist = '/home/s36jshem_hpc/sealion/runs'
-graph_location = f"/home/s36jshem_hpc/sealion/runs/tree_graphs/{now_format}_{BP}"
+graph_location = f"/home/s36jshem_hpc/sealion/plots/clade_files_{now_format}/"
 graph_correct_outputs(newick_path, user_data, tq_dist, graph_location)
 
 
@@ -673,6 +673,35 @@ graph_correct_outputs(newick_path, user_data, tq_dist, graph_location)
 ##################################################################### 
 #####################################################################
 #####################################################################
+
+'''
+This was supposed to retrieve the log likelihoods
+    sub_optimal_newicks = []
+    for file in os.listdir(iqtree_output_path):
+        if file.endswith('treels'): 
+            sub_optimal_newicks.append(file)
+
+    for newick_file in sub_optimal_newicks: 
+        likeli_file_match = re.search(r'fastaout(\d+)\.fas\.treels', newick_file)
+        if likeli_file_match:
+            likeli_file_matched = likeli_file_match.group(1)
+            for file_path in indel_out_files:
+                og_file_match = re.search(r'fastaout(\d+)\.fas', file_path)
+                if og_file_match:
+                    og_file_matched = og_file_match.group(1)
+                    if og_file_matched == likeli_file_matched:
+                        try:
+                            command1 = (
+                                f"iqtree2 -s {file_path} -m {iq_model} "
+                                f"-z {newick_file} -n 0 -redo"
+                            )
+                            print(f"Now we are running the log-likelihoods of {file_path} with {command1}")
+                            subprocess.run(command1, cwd=IQTREE_path, shell=True)
+                        except Exception as e:
+                            print(f"Error loading log_likelihood file properly: {e}")
+
+'''
+
 
 '''
 def shrink_newick(newick_string_location):
