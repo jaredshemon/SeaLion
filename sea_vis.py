@@ -9,6 +9,8 @@ from datetime import datetime
 from numpy import savetxt
 from collections import defaultdict
 from matplotlib.lines import Line2D
+import matplotlib.lines as mlines
+
 
 
 
@@ -21,10 +23,11 @@ def diff_visualizations():
     #### is indicated by the color in the legend.                                    ############################################################
     #############################################################################################################################################
     topology_supports = {}
+    unfiltered_topology_supports = {}
     newick_strings = []
 
     for j in range(1, 61):
-        tsv_location = f'/home/s36jshem_hpc/sealion/sealion_script/runs_dir/clade_files_2025-05-08_13-37-23/sealion_runs/clade_file_{j}.fas/testresults_clade_file_{j}/TSV'
+        tsv_location = f'/home/s36jshem_hpc/sealion/sealion_script/runs_dir/clade_files_2025-05-15_20-59-58_10000/sealion_runs/clade_file_{j}.fas/testresult_clade_file_{j}/TSV'
         match = re.search(r'clade_files_\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}', tsv_location)
         match1 = re.search(r'\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}', tsv_location)
         if match:
@@ -32,6 +35,8 @@ def diff_visualizations():
             clade_file_time = match1.group()
         best_newick = ''
         best_sup = 0
+        best_sup1 = 0
+
         
         for data_files in os.listdir(tsv_location):
             if data_files.startswith('MQ1'):
@@ -40,20 +45,33 @@ def diff_visualizations():
                 with open(avg_support_file, 'r') as f:
                     lines = f.readlines()
                     for i in lines:
-                        i.strip()
+                        line = i.strip()
                         if 'median' in i:
-                            list_lines = i.split()
+                            list_lines = line.split('\t')
                             try:
-                                sup, newick = list_lines[5], list_lines[1] #I GUESS SOMETIMES SEALION DOESNT FINISH THIS? SO I'll TRY AND EXCEPT IT
-                                if float(sup) > best_sup:
-                                    best_sup = float(sup)
+                                sup = float(list_lines[6])
+                                newick = list_lines[1]
+                                if best_sup is None or sup > best_sup:
+                                    best_sup = sup
                                     best_newick = newick
-                            except Exception as e:
-                                print("MAKE SURE SEALION RAN EVERY FILE CORRECTLY")
-        if best_newick:
-            topology_supports[f'clade_file_{j}'] = [best_sup, best_newick]
-            newick_strings.append(best_newick)
+                            except (IndexError, ValueError):
+                                pass
+                            # Unfiltered (should always be present)
+                            try:
+                                sup1 = float(list_lines[3])
+                                newick1 = list_lines[1]
+                                if best_sup1 is None or sup1 > best_sup1:
+                                    best_sup1 = sup1
+                                    best_newick1 = newick1
+                            except (IndexError, ValueError):
+                                pass
+       
 
+        topology_supports[f'clade_file_{j}'] = [best_sup, best_newick if best_newick else "N/A"]
+        if best_newick:
+            newick_strings.append(best_newick)
+  
+        unfiltered_topology_supports[f'clade_file_{j}'] = [best_sup1, best_newick1]
     # Build color mapping for unique topologies
     unique_topologies = sorted(set(value[1] for value in topology_supports.values()))
     colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728']  # expand if needed
@@ -63,24 +81,35 @@ def diff_visualizations():
     labels = []
     supports = []
     bar_colors = []
+    topologies = []
+
 
     for clade_file in sorted(topology_supports.keys(), key=lambda x: int(x.split('_')[-1])):
         support, topology = topology_supports[clade_file]
         labels.append(clade_file.replace('clade_file_', ''))
         supports.append(support)
         bar_colors.append(color_map[topology])
+        topologies.append(topology)
+
 
     # Plot
     plt.figure(figsize=(14, 6))
     plt.bar(labels, supports, color=bar_colors)
 
+    for idx, (support, topology) in enumerate(zip(supports, topologies)):
+        if topology == "N/A":
+                plt.scatter(idx, support + 0.02, marker="*", color="red", s=200, label="N/A (missing)" if idx == 0 else "")
+
     # Add legend
-    legend_handles = [plt.Line2D([0], [0], color=color_map[topo], lw=4, label=topo) for topo in color_map]
+    legend_handles = [plt.Line2D([0], [0], color=color_map[topo], lw=4, label=topo) for topo in color_map if topo != "N/A"]
+    asterisk_handle = mlines.Line2D([], [], color='none', marker='*', markersize=14, 
+                                markerfacecolor='red', label='N/A (missing)', linestyle='None')
+    legend_handles.append(asterisk_handle)
     plt.legend(handles=legend_handles, title='Topology')
 
     plt.xlabel('Dataset')
-    plt.ylabel('Support Value')
-    plt.title('Best Supported SeaLion Topology per Clade File (Colored by Topology)')
+    plt.ylabel('Support Value (Max 2)')
+    plt.title('Best Supported RISK+DIST Filtered SeaLion Topology per Clade File (Colored by Topology)')
     plt.xticks(rotation=90)
     plt.ylim(0, 1)
     plt.tight_layout()
@@ -94,9 +123,63 @@ def diff_visualizations():
 
     plt.close()
 
-    return best_newick, best_sup, saving_location, newick_strings, clade_file_location, clade_file_time, tsv_location
+    return best_newick, best_sup, saving_location, newick_strings, clade_file_location, clade_file_time, tsv_location, unfiltered_topology_supports
 
-best_newick, best_sup, saving_location, newick_strings, clade_file_location, clade_file_time, tsv_location = diff_visualizations()
+best_newick, best_sup, saving_location, newick_strings, clade_file_location, clade_file_time, tsv_location, unfiltered_topology_supports = diff_visualizations()
+
+def unfiltered_quartet_supports(unfiltered_topology_supports):
+    ########################################################################################################################################################
+    ###This should graph the same as above albeit the UNFILTERED supports  #################################################################################
+    ########################################################################################################################################################
+     
+        # Build color mapping for unique topologies
+    
+    unique_topologies = sorted(set(value[1] for value in unfiltered_topology_supports.values()))
+    colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728']  # expand if needed
+    color_map = {topo: colors[i % len(colors)] for i, topo in enumerate(unique_topologies)}
+
+    # Prepare plotting
+    labels = []
+    supports = []
+    bar_colors = []
+    topologies = []
+
+    for clade_file in sorted(unfiltered_topology_supports.keys(), key=lambda x: int(x.split('_')[-1])):
+        support, topology = unfiltered_topology_supports[clade_file]
+        labels.append(clade_file.replace('clade_file_', ''))
+        supports.append(support)
+        bar_colors.append(color_map[topology])
+        topologies.append(topology)
+
+    # Plot
+    plt.figure(figsize=(14, 6))
+    plt.bar(labels, supports, color=bar_colors)
+
+    for idx, (support, topology) in enumerate(zip(supports, topologies)):
+        if topology == "N/A":
+            plt.text(idx, support + 0.02, "✱", ha='center', va='bottom', fontsize=16, color='red', fontweight='bold')
+
+    # Add legend
+    legend_handles = [plt.Line2D([0], [0], color=color_map[topo], lw=4, label=topo) for topo in color_map]
+    plt.legend(handles=legend_handles, title='Topology')
+
+    plt.xlabel('Dataset')
+    plt.ylabel('Support Value (Max 2)')
+    plt.title('Best Supported Unfiltered SeaLion Topology per Clade File (Colored by Topology)')
+    plt.xticks(rotation=90)
+    plt.ylim(0, 1)
+    plt.tight_layout()
+    plt.show()
+
+    saving_location = f"/home/s36jshem_hpc/sealion/plots/{clade_file_location}/"
+    if not os.path.exists(saving_location):
+        os.makedirs(saving_location)
+
+    plt.savefig(f"{saving_location}/Unfiltered_Sea_topology_support_plot.png", dpi=300)
+
+    plt.close()
+
+unfiltered_quartet_supports(unfiltered_topology_supports)
 
 def graph_correct_outputs(correct_newick, tq_dist_path):
     ########################################################################################################################################################
@@ -119,12 +202,12 @@ def graph_correct_outputs(correct_newick, tq_dist_path):
         with open(user_newick_path, 'w') as f:
             f.write(stripped_newick(correct_newick))
 
+
         command = f"/home/s36jshem_hpc/local/bin/quartet_dist {newick_file_path} {user_newick_path}"
         result = subprocess.run(command, cwd=tq_dist_path, shell=True, capture_output = True, text = True)
         output = result.stdout.strip()
         results.append(int(output))
-    
-    print('HERE WE ARE')
+    print(results)
     # Preparing the data for graphing
     gc_contents = [47 + (i // 10) * 4 for i in range(60)]
     gc_content_labels = [f"{47 + i * 4}%" for i in range(6)]
@@ -171,7 +254,7 @@ def graph_correct_outputs(correct_newick, tq_dist_path):
 
     return csv_path, clade_file_location
 
-correct_newick = "(((A1#F81,B1#F81_2)#F81,C1#F81_2)#F81,D1#F81)#F81;"
+correct_newick = "(((A,B),C),D);"
 tq_dist = '/home/s36jshem_hpc/sealion/runs'
 csv_path, clade_file_location = graph_correct_outputs(correct_newick, tq_dist)
 
@@ -204,36 +287,54 @@ def overlay_correct(IQ_csv_location):
 
     return x1, y1, x2, y2
 
-IQ_csv_location = f'/home/s36jshem_hpc/sealion/runs/tree_graphs/2025-05-08_13-37-23/2025-05-08_13-37-23.csv'
+IQ_csv_location = f'/home/s36jshem_hpc/sealion/plots/clade_files_2025-05-15_20-59-58/2025-05-15_20-59-58.csv'
 x1, y1, x2, y2 = overlay_correct(IQ_csv_location)
 
 def diff_graphs(tsv_location):
     ########################################################################################################################################################
     ### This graphs the difference between the best and second best tree topologys from SeaLion                  ###########################################
     ########################################################################################################################################################
-    scores = []
     diff = []
+    diff1 = []
     for j in range(1,61):
-        tsv_location = f'/home/s36jshem_hpc/sealion/sealion_script/runs_dir/clade_files_2025-05-08_13-37-23/sealion_runs/clade_file_{j}.fas/testresults_clade_file_{j}/TSV'
-        match = re.search(r'testresults_clade_file_\d+', tsv_location)
+        tsv_location = f'/home/s36jshem_hpc/sealion/sealion_script/runs_dir/clade_files_2025-05-15_20-59-58_10000/sealion_runs/clade_file_{j}.fas/testresult_clade_file_{j}/TSV'
+        match = re.search(r'testresult_clade_file_\d+', tsv_location)
         if match:
                 clade_file_location = match.group()
         for data_files in os.listdir(tsv_location):
-            if data_files.startswith('MQ1') and data_files.endswith('average_tree_support.tsv'):
+            if data_files.startswith('MQ1'):
                 data_file = data_files
                 median_file = os.path.join(tsv_location, data_file)
+                scores = []
+                scores1 = []
                 with open(median_file, 'r') as f:
                     for line in f:
                         line = line.strip()
                         if 'median' in line:
                             parts = line.split()
-                            try:
-                                score = float(parts[6]) 
-                                scores.append(score)
-                            except Exception as e:
-                                continue
+                            if len(parts) > 3:
+                                try:
+                                    score1 = float(parts[3])
+                                    scores1.append(score1)
+                                except Exception:
+                                    scores1.append(0)
+                            if len(parts) > 6:
+                                try:
+                                    score = float(parts[6])
+                                    scores.append(score)
+                                except Exception:
+                                    scores.append(0)
+                if len(scores) >= 2:
                     top_two = sorted(scores, reverse = True)[0:2]
                     diff.append(top_two[0] - top_two[1])
+                    scores = []
+                elif len(scores) < 2:
+                    diff.append(0)
+                if scores1:
+                    top_two1 = sorted(scores1, reverse =True)[0:2]
+                    diff1.append(top_two1[0] - top_two1[1])
+                    scores1 = []
+
     bin_avg = []   
     for i in range(0, len(diff), 10):
         gc_bins = diff[i:i+10]
@@ -241,16 +342,21 @@ def diff_graphs(tsv_location):
         bin_avg.append(bin_average)            
 
     differences = diff
-    y_axis = range(len(diff))
-    plt.figure(figsize=(10, 5))
+    differencesU = diff1
+    y_axis = range(1, 61)
+    
+    plt.figure(figsize=(16, 5))
     plt.plot(y_axis, differences, marker='+', linestyle='--', color='red', label='Sealion Support Δ' )
+    incomplete_x = [i+1 for i,v in enumerate(differences) if v == 0]
+    incomplete_y = [0] * len(incomplete_x)
+    plt.scatter(incomplete_x, incomplete_y, marker='*', color='black', s=180, label='Incomplete filtering')
 
     plt.xlabel('Dataset')
     plt.ylabel('Support Δ')
-    plt.title('Sealion Δ of Best Topology v. Second Best Topology')
+    plt.title('Sealion Δ of Best Topology v. Second Best Topology (RISK+DIST)')
     #plt.xticks(ticks=range(50), labels=[f"{47 + i * 4}%" for i in range(5)])
-    plt.xticks(ticks=range(len(diff)))
-    plt.ylim(0, 0.3)
+    plt.xticks(ticks=range(1, 61))
+    plt.ylim(0, 1)
     plt.legend()
     plt.tight_layout()
 
@@ -258,16 +364,39 @@ def diff_graphs(tsv_location):
     plt.savefig(f'{saving_location}/SeaLion_best_topology_second_Δ.png', dpi=300)
     plt.show()
 
-    return differences
+    return differences, differencesU
     
-differences = diff_graphs(tsv_location)
+differences, differencesU = diff_graphs(tsv_location)
+
+def diff_graphs1(differencesU):
+    ##############################################################################
+    ### Same as the graph above but for unfiltered data ##########################
+    ##############################################################################
+    y_axis = range(1, 61)
+    plt.figure(figsize=(16, 5))
+    plt.plot(y_axis, differencesU, marker='+', linestyle='--', color='red', label='Sealion Support Δ' )
+
+    plt.xlabel('Dataset')
+    plt.ylabel('Support Δ')
+    plt.title('Sealion Δ of Best Topology v. Second Best Topology (Unfiltered)')
+    #plt.xticks(ticks=range(50), labels=[f"{47 + i * 4}%" for i in range(5)])
+    plt.xticks(ticks=range(1, 61))
+    plt.ylim(0, 1)
+    plt.legend()
+    plt.tight_layout()
+
+    # Save and show
+    plt.savefig(f'{saving_location}/SeaLion_Unfil_best_topology_second_Δ.png', dpi=300)
+    plt.show()
+
+diff_graphs1(differencesU)
 
 def diff_graphs2(IQ_likeli_loc):
     ########################################################################################################################################################
     ### This graphs the difference between the best and second best tree topologys from IQTREE indicated by log-likelihood        ##########################
     ########################################################################################################################################################
 
-    IQ_likeli_loc = f"/home/s36jshem_hpc/sealion/runs/iq_output_2025-05-08_13-37-23"
+    IQ_likeli_loc = f"/home/s36jshem_hpc/sealion/runs/iq_output_2025-05-15_20-59-58_10000"
     for file in os.listdir(IQ_likeli_loc):
         if file.startswith('fastaout') and file.endswith('ckp.gz'):
             os.chdir(IQ_likeli_loc)
@@ -280,7 +409,7 @@ def diff_graphs2(IQ_likeli_loc):
             with open(file, 'r') as f:
                 lines = f.read()
                 log_likelihoods = re.findall(r'\d+:\s+(-\d+\.\d+)', lines)
-                top_two = sorted(log_likelihoods, reverse = True)[:2]            
+                top_two = sorted(log_likelihoods, reverse = True)[:2]  
                 try:
                     diff = (float(top_two[0]) - float(top_two[1]))*(-1)
                     diff_newick_scores.append(diff)
@@ -292,20 +421,27 @@ def diff_graphs2(IQ_likeli_loc):
     x_1 = differences
     x_2 = diff_newick_scores
 
-    plt.figure(figsize=(10, 5))
-    #plt.plot(y_1, x_1, marker='+', linestyle='--', color='green', label='Sealion Support Δ' )
-    plt.plot(y_2, x_2, marker='+', linestyle='--', color='red', label='IQTREE Support Δ' )
+    # Convert to numpy array for easier processing
+    diffs = np.array(diff_newick_scores)
+    indices = np.arange(1, len(diffs) + 1)
+
+    # Plot with log scaling to highlight small differences
+    plt.figure(figsize=(12, 6))
+    plt.plot(indices, diffs, marker='+', linestyle='--', color='red', label='Sealion Support Δ' )
+    
+    # Highlight significant differences
+    threshold = 0.01
+    significant = diffs >= threshold
+    plt.scatter(indices[significant], diffs[significant], color='red', marker='*', s=100, label=f'Δ ≥ {threshold}')
 
     plt.xlabel('Dataset')
-    plt.ylabel('Support Δ')
-    plt.title('IQTREE Best Topology v. Second Best')
-    #plt.xticks(ticks=range(50), labels=[f"{47 + i * 4}%" for i in range(5)])
-    plt.xticks(ticks=range(len(diff_newick_scores)))
-    plt.ylim(0, 0.4)
+    plt.ylabel('Δ Log-Likelihood (Best - 2nd Best)')
+    plt.title('IQ-TREE Topology Likelihood Gaps (ΔL)')
+    plt.xticks(indices, rotation=90)
+    plt.yscale('log')  # log scale to emphasize small differences
+    plt.ylim(bottom=1e-5, top=max(diffs)*1.5)
     plt.legend()
     plt.tight_layout()
-
-    # Save and show
     plt.savefig(f'{saving_location}/IQ_best_second_Δ.png', dpi=300)
     plt.show()
 
@@ -322,8 +458,8 @@ def reject_GC():
     percent_rejected = []
     accepted = []
     for j in range(1,61):
-        tsv_location = f'/home/s36jshem_hpc/sealion/sealion_script/runs_dir/clade_files_2025-05-08_13-37-23/sealion_runs/clade_file_{j}.fas/testresults_clade_file_{j}/TSV'
-        match = re.search(r'testresults_clade_file_\d+', tsv_location)
+        tsv_location = f'/home/s36jshem_hpc/sealion/sealion_script/runs_dir/clade_files_2025-05-15_20-59-58_10000/sealion_runs/clade_file_{j}.fas/testresult_clade_file_{j}/TSV'
+        match = re.search(r'testresult_clade_file_\d+', tsv_location)
         if match:
                 clade_file_location = match.group()
         for data_files in os.listdir(tsv_location):
@@ -365,7 +501,7 @@ def reject_GC():
     plt.savefig(f'{saving_location}/Box_Whisk_SeaLion_percent_rejected.png', dpi=300)
     plt.show()
 
-reject_GC()
+#reject_GC()
 
 def support_b4_af():
     ########################################################################################################################################################
@@ -374,8 +510,8 @@ def support_b4_af():
     after_support = []
     before_support = []
     for j in range(1,61):
-        tsv_location = f'/home/s36jshem_hpc/sealion/sealion_script/runs_dir/clade_files_2025-05-08_13-37-23/sealion_runs/clade_file_{j}.fas/testresults_clade_file_{j}/TSV'
-        match = re.search(r'testresults_clade_file_\d+', tsv_location)
+        tsv_location = f'/home/s36jshem_hpc/sealion/sealion_script/runs_dir/clade_files_2025-05-15_20-59-58_10000/sealion_runs/clade_file_{j}.fas/testresult_clade_file_{j}/TSV'
+        match = re.search(r'testresult_clade_file_\d+', tsv_location)
         if match:
                 clade_file_location = match.group()
         for data_files in os.listdir(tsv_location):
@@ -416,7 +552,7 @@ def support_b4_af():
  
                             
 
-support_b4_af()
+#support_b4_af()
 
 def support_b4_af_filtering():
     ########################################################################################################################################################
@@ -425,8 +561,8 @@ def support_b4_af_filtering():
     after_support = []
     before_support = []
     for j in range(1,61):
-        tsv_location = f'/home/s36jshem_hpc/sealion/sealion_script/runs_dir/clade_files_2025-05-08_13-37-23/sealion_runs/clade_file_{j}.fas/testresults_clade_file_{j}/TSV'
-        match = re.search(r'testresults_clade_file_\d+', tsv_location)
+        tsv_location = f'/home/s36jshem_hpc/sealion/sealion_script/runs_dir/clade_files_2025-05-15_20-59-58_10000/sealion_runs/clade_file_{j}.fas/testresult_clade_file_{j}/TSV'
+        match = re.search(r'testresult_clade_file_\d+', tsv_location)
         if match:
                 clade_file_location = match.group()
         for data_files in os.listdir(tsv_location):
@@ -465,7 +601,7 @@ def support_b4_af_filtering():
 
   
 
-support_b4_af_filtering()
+#support_b4_af_filtering()
 
 
 
