@@ -405,7 +405,7 @@ def move_tree_files(iqtree_output_path, tree_output_path):
             dst_path = os.path.join(tree_output_path, f)
             shutil.move(src_path, dst_path)
 
-move_tree_files(iqtree_output_path, newick_treefile_output_path)
+#move_tree_files(iqtree_output_path, newick_treefile_output_path)
 
 def make_clade_files(fasta_path, clade_path, sealion_directory):
     #################################################################################################################################
@@ -542,11 +542,9 @@ def graph_correct_outputs(newick_corrected_path, correct_newick_string_user_data
     #### vs the incorrect ones.                                    ##############################################################################
     #############################################################################################################################################
     
-    
     def extract_number(file_name):
         match = re.search(r'\d+', file_name)
         return int(match.group()) if match else -1
-
 
     newick_strings = []
     for file in sorted(os.listdir(newick_corrected_path), key = extract_number):
@@ -564,7 +562,6 @@ def graph_correct_outputs(newick_corrected_path, correct_newick_string_user_data
     user_newick_path = os.path.join(newick_path, 'newickfile_user.txt' )
     results = []
     
-
     for i in newick_strings:
         with open(newick_file_path, 'w') as f:
             print(stripped_newick(i))
@@ -617,13 +614,13 @@ def graph_correct_outputs(newick_corrected_path, correct_newick_string_user_data
     #plt.plot(x, regression_line, 'r--', label = 'regression line')
 
     plt.xlabel('GC Content')
-    plt.ylabel('% of Correct Newick Tree Topologies')
-    plt.title('Correct Newick String Matches by GC Content (IQ-TREE)')
+    plt.ylabel('% Tree Success')
+    plt.title('Tree_Success by GC Content (IQ-TREE)')
     plt.xticks(x, gc_content_labels)
     #plt.legend(handles = [custom_legend], loc = 'upper right', fontsize = 'x-small')
 
     
-    plt.savefig(os.path.join(graph_path, f'{now_format}.png'), format='png')
+    plt.savefig(os.path.join(graph_path, f'IQTREE_SUCCESS.png'), format='png')
     plt.show()
 
 graph_correct_outputs(corrected_newick_path, correct_newick_string_user_data, tq_dist, plot_output_location)
