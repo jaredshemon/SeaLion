@@ -523,7 +523,7 @@ def shrink_newick(newick_string_location): #FIX THIS
     sorted_results = dict(sorted(results.items(), key=lambda x: int(re.search(r'clade_def_file_(\d+)', x[0]).group(1))))
     print(sorted_results)
     
-    newick_path = f'/home/s36jshem_hpc/sealion/runs/corrected_newick_output_{now_format}_{BP}'
+    newick_path = f'/home/s36jshem_hpc/sealion/runs/corrected_IQ_newick_output_{now_format}_{BP}'
     if not os.path.exists(newick_path):
         os.makedirs(newick_path)
 

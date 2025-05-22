@@ -18,11 +18,12 @@ import gzip
 now = datetime.now()
 now_format = now.strftime("%Y-%m-%d_%H-%M-%S")
  
+#############################################################################################################################################
+###This graphs support values on the y axis and the clade file on the x axis, more specifically the most supported topology. The topology ###
+#### is indicated by the color in the legend.                                    ############################################################
+############################################################################################################################################# 
 def diff_visualizations():
-    #############################################################################################################################################
-    ###This graphs support values on the y axis and the clade file on the x axis, more specifically the most supported topology. The topology ###
-    #### is indicated by the color in the legend.                                    ############################################################
-    #############################################################################################################################################
+    
     topology_supports = {}
     unfiltered_topology_supports = {}
     newick_strings = []
@@ -96,6 +97,13 @@ def diff_visualizations():
     # Plot
     plt.figure(figsize=(14, 6))
     plt.bar(labels, supports, color=bar_colors)
+    threshold = 0.6
+    threshold1 = 0.4
+    plt.axhline(y=threshold, color='blue', linestyle=':', linewidth=1, label=f'Good Support')
+    plt.axhline(y=threshold1, color='blue', linestyle=':', linewidth=1, label=f'Moderate Conflict')
+    plt.text(60, 0.7, 'Good Support', color='black', fontsize=10, va='top')
+    plt.text(60, 0.5, 'Moderate Conflict', color='black', fontsize=10, va='top')
+    plt.text(60, 0.3, 'High Conflict', color='black', fontsize=10, va='top')
 
     for idx, (support, topology) in enumerate(zip(supports, topologies)):
         if topology == "N/A":
@@ -119,7 +127,7 @@ def diff_visualizations():
     asterisk_handle = mlines.Line2D([], [], color='none', marker='*', markersize=14, 
                                 markerfacecolor='red', label='Unsupported', linestyle='None')
     legend_handles.append(asterisk_handle)
-    plt.legend(handles=legend_handles, title='Topology')
+    plt.legend(handles=legend_handles, bbox_to_anchor=(1, 0.95))
 
     plt.xlabel('Dataset')
     plt.ylabel('Support Value (Max 2)')
@@ -141,11 +149,11 @@ def diff_visualizations():
 
 best_newick, best_sup, saving_location, newick_strings, clade_file_location, clade_file_time, tsv_location, unfiltered_topology_supports = diff_visualizations()
 
+################################################################################
+###This should graph the same as above albeit the UNFILTERED supports  #########
+################################################################################  
 def unfiltered_quartet_supports(unfiltered_topology_supports):
-    ########################################################################################################################################################
-    ###This should graph the same as above albeit the UNFILTERED supports  #################################################################################
-    ########################################################################################################################################################
-     
+
         # Build color mapping for unique topologies
     
     unique_topologies = sorted(set(value[1] for value in unfiltered_topology_supports.values()))
@@ -169,6 +177,14 @@ def unfiltered_quartet_supports(unfiltered_topology_supports):
     plt.figure(figsize=(14, 6))
     plt.bar(labels, supports, color=bar_colors)
 
+    threshold = 0.6
+    threshold1 = 0.4
+    plt.axhline(y=threshold, color='blue', linestyle=':', linewidth=1, label=f'Good Support')
+    plt.axhline(y=threshold1, color='blue', linestyle=':', linewidth=1, label=f'Moderate Conflict')
+    plt.text(60, 0.7, 'Good Support', color='black', fontsize=10, va='top')
+    plt.text(60, 0.5, 'Moderate Conflict', color='black', fontsize=10, va='top')
+    plt.text(60, 0.3, 'High Conflict', color='black', fontsize=10, va='top')
+
     for idx, (support, topology) in enumerate(zip(supports, topologies)):
         if topology == "N/A":
             plt.text(idx, support + 0.02, "✱", ha='center', va='bottom', fontsize=16, color='red', fontweight='bold')
@@ -188,7 +204,7 @@ def unfiltered_quartet_supports(unfiltered_topology_supports):
 
     # Add legend
     legend_handles = [plt.Line2D([0], [0], color=color_map[topo], lw=4, label=topo) for topo in color_map]
-    plt.legend(handles=legend_handles, title='Topology')
+    plt.legend(handles=legend_handles, bbox_to_anchor=(1, 0.95))
 
     plt.xlabel('Dataset')
     plt.ylabel('Support Value (Max 2)')
@@ -206,13 +222,128 @@ def unfiltered_quartet_supports(unfiltered_topology_supports):
 
     plt.close()
 
-unfiltered_quartet_supports(unfiltered_topology_supports)
+#unfiltered_quartet_supports(unfiltered_topology_supports)
 
+
+###############################################################################################
+###This should graph the same topology graph as the two above but for the IQTREE analyis  #####
+###############################################################################################
+def IQ_quartet_supports():
+
+    IQ_likeli_loc = f"/home/s36jshem_hpc/sealion/runs/iq_output_2025-05-15_20-59-58_10000"
+    for file in os.listdir(IQ_likeli_loc):
+        if file.startswith('fastaout') and file.endswith('ckp.gz'):
+            os.chdir(IQ_likeli_loc)
+            os.system(f'gunzip {file}')
+
+    newick_scores = []
+    diff_newick_scores = {}
+    for file in os.listdir(IQ_likeli_loc):
+        if file.startswith('fastaout') and file.endswith('ckp'): 
+            file = os.path.join(IQ_likeli_loc, file)
+            with open(file, 'r') as f:
+                lines = f.read()
+                log_likelihoods = re.findall(r'\d+:\s+(-\d+\.\d+)', lines)
+                top = sorted(log_likelihoods)[0]
+                diff_newick_scores[file] = [top]
+
+    y_labels = []
+    x_labels = []
+    for file_name, score in diff_newick_scores.items():
+        match = re.search(r'fastaout(\d+)\.fas\.ckp', file_name)
+        if match:
+            dataset_number = int(match.group(1))
+            x_labels.append(dataset_number)
+            y_labels.append(float(score[0]))
+
+    
+    newick_corrected_path = '/home/s36jshem_hpc/sealion/runs/corrected_newick_output_2025-05-15_20-59-58_10000'
+    user_newick = '(((A,B),C),D);'
+    tq_dist_path = '/home/s36jshem_hpc/local/bin/quartet_dist'
+    def extract_number(file_name):
+        match = re.search(r'\d+', file_name)
+        return int(match.group()) if match else -1
+
+    newick_strings = []
+    for file in sorted(os.listdir(newick_corrected_path), key = extract_number):
+        if file.endswith('txt'):
+            file_path = os.path.join(newick_corrected_path, file)
+            with open(file_path, 'r') as f:
+                newick_string = f.read().strip()
+                newick_strings.append(newick_string)
+
+    def stripped_newick(string):
+        return re.sub(r'([0-9.e-]+|#[A-Za-z0-9_]+)', '', string)
+
+    newick_path = '/home/s36jshem_hpc/sealion/runs/'
+    newick_file_path = os.path.join(newick_path, 'newickfile1.txt')
+    user_newick_path = os.path.join(newick_path, 'newickfile_user.txt' )
+    results = []
+    
+    for i in newick_strings:
+        with open(newick_file_path, 'w') as f:
+            f.write(i)
+        with open(user_newick_path, 'w') as f:
+            f.write(user_newick)
+
+        command = f"/home/s36jshem_hpc/local/bin/quartet_dist {newick_file_path} {user_newick_path}"
+        result = subprocess.run(command, cwd=newick_path, shell=True, capture_output = True, text = True)
+        output = result.stdout.strip()
+        results.append(int(output))
+    
+    sorted_data = sorted(zip(y_labels, x_labels))
+    x_labels_sorted, y_values_sorted = zip(*sorted_data)
+
+    x = np.arange(1,61)
+    # Assign colors based on results (0 = correct, 1 = incorrect)
+    colors = ['orange' if result == 0 else 'blue' for result in results]
+
+    plt.figure(figsize=(16, 6))
+    plt.bar(x, y_labels, color=colors, align='center')
+
+    correct_newick = set(newick_strings[i] for i, result in enumerate(results) if result == 0)
+    incorrect_newick = set(newick_strings[i] for i, result in enumerate(results) if result == 1)
+
+    correct_legend_label = "".join(correct_newick)
+    incorrect_legend_label = "".join(incorrect_newick)
+
+    correct_patch = plt.Line2D([0], [0], color='orange', lw=4, label=correct_legend_label)
+    incorrect_patch = plt.Line2D([0], [0], color='blue', lw=4, label=incorrect_legend_label)
+    plt.legend(handles=[correct_patch, incorrect_patch], loc='upper right')
+
+    for x in range(10, 60, 10):
+        plt.axvline(x=x - 0.5, color='blue', linestyle='--', linewidth=1)
+
+    #Add shaded backgrounds
+    for i in range(0, 60, 20):  # every other bin
+        plt.axvspan(i - 0.5, i + 9.5, color='gray', alpha=0.1)
+
+    #GC content annotations
+    gc_labels = [47, 51, 55, 59, 63, 67]
+    for i, gc in enumerate(gc_labels):
+        plt.text(i * 10 + 5, -77900, f'{gc}%', ha='center', va='top', fontsize=9, transform=plt.gca().transData)
+
+
+    plt.xlabel("Dataset Number")
+    plt.ylabel("Log-Likelihood Score")
+    plt.ylim(-75000,-78000)
+    plt.title("Log-Likelihood Scores by Dataset")
+    plt.xticks(range(1,61))
+    plt.tight_layout()
+    plt.show()
+
+    plt.savefig(f"{saving_location}/IQ_Topology_barchart", dpi=300)
+
+    plt.close()
+
+IQ_quartet_supports()
+
+########################################################################################################################################################
+###This function should take the newick string from our sea_lion output file, cross check it with the original, then graphs the correct ones ###########
+#### vs the incorrect ones.                                    #########################################################################################
+########################################################################################################################################################
 def graph_correct_outputs(correct_newick, tq_dist_path):
-    ########################################################################################################################################################
-    ###This function should take the newick string from our sea_lion output file, cross check it with the original, then graphs the correct ones ###########
-    #### vs the incorrect ones.                                    #########################################################################################
-    ########################################################################################################################################################
+
     
     def stripped_newick(string):
         return re.sub(r'([0-9.e-]+|#[A-Za-z0-9_]+)', '', string)
@@ -280,14 +411,13 @@ def graph_correct_outputs(correct_newick, tq_dist_path):
 
 correct_newick = "(((A,B),C),D);"
 tq_dist = '/home/s36jshem_hpc/sealion/runs'
-csv_path, clade_file_location = graph_correct_outputs(correct_newick, tq_dist)
+#csv_path, clade_file_location = graph_correct_outputs(correct_newick, tq_dist)
 
-
+#############################################################################################################################################
+###This function should take the newick string from our tree file, cross check it with the original, then graphs the correct ones ###########
+#### vs the incorrect ones. (IQTREE)                              ###########################################################################
+#############################################################################################################################################    
 def graph_correct_outputsIQ(newick_corrected_path, correct_newick_string_user_data, tq_dist_path):
-    #############################################################################################################################################
-    ###This function should take the newick string from our tree file, cross check it with the original, then graphs the correct ones ###########
-    #### vs the incorrect ones. (IQTREE)                              ###########################################################################
-    #############################################################################################################################################
     
     def extract_number(file_name):
         match = re.search(r'\d+', file_name)
@@ -357,13 +487,12 @@ def graph_correct_outputsIQ(newick_corrected_path, correct_newick_string_user_da
     plt.show()
 
 corrected_newick_path = f'/home/s36jshem_hpc/sealion/runs/corrected_newick_output_2025-05-15_20-59-58_10000'
-graph_correct_outputsIQ(corrected_newick_path, correct_newick, tq_dist)
+#graph_correct_outputsIQ(corrected_newick_path, correct_newick, tq_dist)
 
-
+#################################################################
+### This function just replots the IQTREE correct quartets  #####                                              
+#################################################################
 def IQ_correct(IQ_csv_location):
-    ########################################################################################################################################################
-    ### This function just replots the IQTREE correct quartets                                                   ###########################################
-    ########################################################################################################################################################
 
     data1 = np.loadtxt(IQ_csv_location, delimiter=',')
 
@@ -389,10 +518,10 @@ def IQ_correct(IQ_csv_location):
 #IQ_csv_location = f'/home/s36jshem_hpc/sealion/plots/clade_files_2025-05-15_20-59-58/2025-05-15_20-59-58.csv'
 #IQ_correct(IQ_csv_location)
 
+###################################################################################################################################
+#### This function should overlay the correct vs incorrect from SeaLion v the correct v incorrect from IQTREE #####################
+###################################################################################################################################
 def overlay_correct(IQ_csv_location):
-    ########################################################################################################################################################
-    ### This function should overlay the correct vs incorrect from SeaLion v the correct v incorrect from IQTREE ###########################################
-    ########################################################################################################################################################
     
     data1 = np.loadtxt(IQ_csv_location, delimiter=',')
     data2 = np.loadtxt(csv_path, delimiter=',')
@@ -419,12 +548,13 @@ def overlay_correct(IQ_csv_location):
     return x1, y1, x2, y2
 
 IQ_csv_location = f'/home/s36jshem_hpc/sealion/plots/clade_files_2025-05-15_20-59-58/IQTREE_Success_GC_Content.csv'
-x1, y1, x2, y2 = overlay_correct(IQ_csv_location)
+#x1, y1, x2, y2 = overlay_correct(IQ_csv_location)
 
+########################################################################################################
+### This graphs the difference between the best and second best tree topologys from SeaLion ############
+########################################################################################################
 def diff_graphs(tsv_location):
-    ########################################################################################################################################################
-    ### This graphs the difference between the best and second best tree topologys from SeaLion                  ###########################################
-    ########################################################################################################################################################
+
     diff = []
     diff1 = []
     for j in range(1,61):
@@ -456,13 +586,13 @@ def diff_graphs(tsv_location):
                                 except Exception:
                                     scores.append(0)
                 if len(scores) >= 2:
-                    top_two = sorted(scores, reverse = True)[0:2]
+                    top_two = sorted(scores)[0:2]
                     diff.append(top_two[0] - top_two[1])
                     scores = []
                 elif len(scores) < 2:
                     diff.append(0)
                 if scores1:
-                    top_two1 = sorted(scores1, reverse =True)[0:2]
+                    top_two1 = sorted(scores1)[0:2]
                     diff1.append(top_two1[0] - top_two1[1])
                     scores1 = []
 
@@ -481,6 +611,7 @@ def diff_graphs(tsv_location):
     incomplete_x = [i+1 for i,v in enumerate(differences) if v == 0]
     incomplete_y = [0] * len(incomplete_x)
     plt.scatter(incomplete_x, incomplete_y, marker='*', color='black', s=180, label='Fully Rejected')
+    
 
         # Add dashed lines
     for x in range(10, 60, 10):
@@ -510,12 +641,13 @@ def diff_graphs(tsv_location):
 
     return differences, differencesU
     
-differences, differencesU = diff_graphs(tsv_location)
+#differences, differencesU = diff_graphs(tsv_location)
 
+##############################################################################
+### Same as the graph above but for unfiltered data ##########################
+##############################################################################
 def diff_graphs1(differencesU):
-    ##############################################################################
-    ### Same as the graph above but for unfiltered data ##########################
-    ##############################################################################
+
     y_axis = range(1, 61)
     plt.figure(figsize=(16, 5))
     plt.plot(y_axis, differencesU, marker='+', linestyle='--', color='red', label='Sealion Support Δ' )
@@ -546,12 +678,12 @@ def diff_graphs1(differencesU):
     plt.savefig(f'{saving_location}/SeaLion_Unfil_best_second_Δ.png', dpi=300)
     plt.show()
 
-diff_graphs1(differencesU)
+#diff_graphs1(differencesU)
 
+########################################################################################################################################################
+### This graphs the difference between the best and second best tree topologys from IQTREE indicated by log-likelihood        ##########################
+########################################################################################################################################################
 def diff_graphs2(IQ_likeli_loc):
-    ########################################################################################################################################################
-    ### This graphs the difference between the best and second best tree topologys from IQTREE indicated by log-likelihood        ##########################
-    ########################################################################################################################################################
 
     IQ_likeli_loc = f"/home/s36jshem_hpc/sealion/runs/iq_output_2025-05-15_20-59-58_10000"
     for file in os.listdir(IQ_likeli_loc):
@@ -617,20 +749,22 @@ def diff_graphs2(IQ_likeli_loc):
 
     return diffs, indices
 
-IQ_likeli_loc = f'/home/s36jshem_hpc/sealion/runs/iq_output_{clade_file_time}'
-diffs, indices = diff_graphs2(IQ_likeli_loc)
+#IQ_likeli_loc = f'/home/s36jshem_hpc/sealion/runs/iq_output_{clade_file_time}'
+#diffs, indices = diff_graphs2(IQ_likeli_loc)
 
+##########################################################################################
+### Combined graph with two y-axes to compare filtered and unfiltered datasets ###########
+##########################################################################################
 def combined_graph(differences, differencesU):
-    ############################################################################################################
-    ### Combined graph with two y-axes to compare filtered and unfiltered datasets                          ###
-    ############################################################################################################
-    y_axis = range(1, 61)  # Shared x-axis for both datasets
+
+    y_axis = range(1, 61)  
 
     # Create the figure and axis
     fig, ax1 = plt.subplots(figsize=(16, 5))
 
     # First dataset (filtered data) on the left y-axis
     ax1.plot(y_axis, differences, marker='.', linestyle='--', color='darkgoldenrod', label='Filtered Δ Support')
+    ax1.set_ylim(0.0, 1.0)
     ax1.set_xlabel('Dataset')
     ax1.set_ylabel('Support Δ (Filtered)', color='darkgoldenrod')
     ax1.tick_params(axis='y', labelcolor='darkgoldenrod')
@@ -654,6 +788,7 @@ def combined_graph(differences, differencesU):
     # Second dataset (unfiltered data) on the right y-axis
     ax2 = ax1.twinx()
     ax2.plot(y_axis, differencesU, marker='.', linestyle='--', color='seagreen', label='Unfiltered Δ Support')
+    ax2.set_ylim(0.0, 1.0)
     ax2.set_ylabel('Support Δ (Unfiltered)', color='seagreen')
     ax2.tick_params(axis='y', labelcolor='seagreen')
 
@@ -671,12 +806,13 @@ def combined_graph(differences, differencesU):
     plt.show()
 
 # Call the function with your data
-combined_graph(differences, differencesU)
+#combined_graph(differences, differencesU)
 
+#################################################################################################
+### Combined graph with two y-axes to compare filtered and unfiltered datasets Barchart #########           
+#################################################################################################
 def combined_graph_bar(differences, differencesU):
-    ############################################################################################################
-    ### Combined graph with two y-axes to compare filtered and unfiltered datasets Barchart                  ###
-    ############################################################################################################
+
     x_axis = np.arange(1, 61)  # Shared x-axis for both datasets
     bar_width = 0.4  # Width of each bar
 
@@ -688,11 +824,13 @@ def combined_graph_bar(differences, differencesU):
     ax1.set_xlabel('Dataset')
     ax1.set_ylabel('Support Δ (Filtered)', color='darkgoldenrod')
     ax1.tick_params(axis='y', labelcolor='darkgoldenrod')
+    plt.axhline(y=.2, color='green', linestyle=':', linewidth=1, label=f'Good Support')
+    plt.text(61, 0.1, 'High Conflict', color='black', fontsize=10, va='top')
 
-    for x in range(10, 60, 10):
+    for x in range(1, 60, 10):
         plt.axvline(x=x - 0.5, color='darkgoldenrod', linestyle='--', linewidth=1)
 
-    for i in range(0, 60, 20):  # every other bin
+    for i in range(1, 60, 20):  # every other bin
         plt.axvspan(i - 0.5, i + 9.5, color='gray', alpha=0.1)
 
     gc_labels = [47, 51, 55, 59, 63, 67]
@@ -718,13 +856,13 @@ def combined_graph_bar(differences, differencesU):
     plt.show()
 
 # Call the function with your data
-combined_graph_bar(differences, differencesU)
+#combined_graph_bar(differences, differencesU)
 
-
+############################################################################################
+### Combined graph with two y-axes to compare filtered and IQ_likelihood delta datasets  ###
+############################################################################################
 def combined_graph_IQ(differences, diffs, indices, saving_location):
-    ############################################################################################################
-    ### Combined graph with two y-axes to compare filtered and IQ_likelihood delta datasets                 ####
-    ############################################################################################################
+
     y_axis = range(1, 61)  # Shared x-axis for both datasets
     gc_labels = [47, 51, 55, 59, 63, 67]
 
@@ -780,12 +918,13 @@ def combined_graph_IQ(differences, diffs, indices, saving_location):
     plt.savefig(f'{saving_location}/Combined_Delta_SeaLion_LogLikelihood.png', dpi=300)
     plt.show()
 
-combined_graph_IQ(differences, diffs, indices, saving_location)
+#combined_graph_IQ(differences, diffs, indices, saving_location)
 
+##############################################################################################
+### Combined graph with two y-axes to compare unfiltered and IQ_likelihood delta datasets ####
+##############################################################################################
 def combined_graph_IQ_Unfil(differencesU, diffs, indices, saving_location):
-    ############################################################################################################
-    ### Combined graph with two y-axes to compare unfiltered and IQ_likelihood delta datasets                 ####
-    ############################################################################################################
+
     y_axis = range(1, 61)  # Shared x-axis for both datasets
     gc_labels = [47, 51, 55, 59, 63, 67]
 
@@ -836,14 +975,14 @@ def combined_graph_IQ_Unfil(differencesU, diffs, indices, saving_location):
     plt.savefig(f'{saving_location}/Combined_Support_Delta_Unfiltered_LogLikelihood.png', dpi=300)
     plt.show()
 
-combined_graph_IQ_Unfil(differencesU, diffs, indices, saving_location)
+#combined_graph_IQ_Unfil(differencesU, diffs, indices, saving_location)
 
-
+#### THIS DOESNT WORK UNLESS THERE ARE THE RIGHT AMOUNT OF ALL OF SEALION IS FINISHED!!!! 
+#######################################################################
+### This graphs the rejected trees as a function of the GC contents ###   
+#######################################################################
 def reject_GC():
-    #### THIS DOESNT WORK UNLESS THERE ARE THE RIGHT AMOUNT OF ALL OF SEALION IS FINISHED!!!! 
-    ########################################################################################################################################################
-    ### This graphs the rejected trees as a function of the GC contents                                          ###########################################
-    ########################################################################################################################################################
+
     clade_file_rejected = defaultdict(list)
     percent_rejected = []
     accepted = []
@@ -893,10 +1032,11 @@ def reject_GC():
 
 #reject_GC()
 
+####################################################################################
+### This should look at the correct topology support before and after filtering ####     
+####################################################################################
 def support_b4_af():
-    ########################################################################################################################################################
-    ### This should look at the correct topology support before and after filtering                                     ####################################
-    ########################################################################################################################################################
+
     after_support = []
     before_support = []
     for j in range(1,61):
@@ -938,14 +1078,15 @@ def support_b4_af():
     # Save and show
     plt.savefig(f'{saving_location}/SeaLion_correct_topology_b4_after_filtering.png', dpi=300)
     plt.show()
-
-                            
+                           
 #support_b4_af()
 
+
+#######################################################################################################
+### This should look at the difference between correct topology support before and after filtering ####        
+#######################################################################################################
 def support_b4_af_filtering():
-    ########################################################################################################################################################
-    ### This should look at the difference between correct topology support before and after filtering                   ###################################
-    ########################################################################################################################################################
+
     after_support = []
     before_support = []
     for j in range(1,61):
@@ -987,9 +1128,12 @@ def support_b4_af_filtering():
     plt.savefig(f'{saving_location}/SeaLion_before_after_support_difference.png', dpi=300)
     plt.show()
 
-  
-
 #support_b4_af_filtering()
+
+
+
+
+
 
 
 
@@ -1024,4 +1168,96 @@ def support_b4_af_filtering():
         
         if diff:
             avg.append(sum(diff) / len(diff))
+'''
+
+'''
+    newick_corrected_path = '/home/s36jshem_hpc/sealion/runs/corrected_newick_output_2025-05-15_20-59-58_10000'
+    user_newick = '(((A,B),C),D);'
+    tq_dist_path = '/home/s36jshem_hpc/local/bin/quartet_dist'
+    def extract_number(file_name):
+        match = re.search(r'\d+', file_name)
+        return int(match.group()) if match else -1
+
+    newick_strings = []
+    for file in sorted(os.listdir(newick_corrected_path), key = extract_number):
+        if file.endswith('txt'):
+            file_path = os.path.join(newick_corrected_path, file)
+            with open(file_path, 'r') as f:
+                newick_string = f.read().strip()
+                newick_strings.append(newick_string)
+
+    def stripped_newick(string):
+        return re.sub(r'([0-9.e-]+|#[A-Za-z0-9_]+)', '', string)
+
+    newick_path = '/home/s36jshem_hpc/sealion/runs/'
+    newick_file_path = os.path.join(newick_path, 'newickfile1.txt')
+    user_newick_path = os.path.join(newick_path, 'newickfile_user.txt' )
+    results = []
+    
+    for i in newick_strings:
+        with open(newick_file_path, 'w') as f:
+            f.write(i)
+        with open(user_newick_path, 'w') as f:
+            f.write(user_newick)
+
+        command = f"/home/s36jshem_hpc/local/bin/quartet_dist {newick_file_path} {user_newick_path}"
+        result = subprocess.run(command, cwd=newick_path, shell=True, capture_output = True, text = True)
+        output = result.stdout.strip()
+        results.append(int(output))
+    
+    print(results)
+'''
+
+'''
+
+    newick_corrected_path = '/home/s36jshem_hpc/sealion/runs/corrected_newick_output_2025-05-15_20-59-58_10000'
+    user_newick = '(((A,B),C),D);'
+    tq_dist_path = '/home/s36jshem_hpc/local/bin/quartet_dist'
+    def extract_number(file_name):
+        match = re.search(r'\d+', file_name)
+        return int(match.group()) if match else -1
+
+    newick_strings = []
+    for file in sorted(os.listdir(newick_corrected_path), key = extract_number):
+        if file.endswith('txt'):
+            file_path = os.path.join(newick_corrected_path, file)
+            with open(file_path, 'r') as f:
+                newick_string = f.read().strip()
+                newick_strings.append(newick_string)
+
+    def stripped_newick(string):
+        return re.sub(r'([0-9.e-]+|#[A-Za-z0-9_]+)', '', string)
+
+    newick_path = '/home/s36jshem_hpc/sealion/runs/'
+    newick_file_path = os.path.join(newick_path, 'newickfile1.txt')
+    user_newick_path = os.path.join(newick_path, 'newickfile_user.txt' )
+    results = []
+    
+    for i in newick_strings:
+        with open(newick_file_path, 'w') as f:
+            f.write(i)
+        with open(user_newick_path, 'w') as f:
+            f.write(user_newick)
+
+        command = f"/home/s36jshem_hpc/local/bin/quartet_dist {newick_file_path} {user_newick_path}"
+        result = subprocess.run(command, cwd=newick_path, shell=True, capture_output = True, text = True)
+        output = result.stdout.strip()
+        results.append(int(output))
+    
+    y = range(len(results))
+    x = results
+    plt.figure(figsize=(14, 6))
+    plt.bar(y, x, width =.8)
+    
+    plt.xlabel('Dataset')
+    plt.ylabel('Correct v. Incorrect')
+    plt.title('Correct v. Incorrect IQTREE Datasets')
+    plt.xticks(rotation=90)
+    plt.ylim(1, 0)
+    plt.tight_layout()
+    plt.show()
+
+    plt.savefig(f"{saving_location}/IQ_Correct_v_Incorrect_barchart", dpi=300)
+
+    plt.close()
 '''
