@@ -11,6 +11,7 @@ from collections import defaultdict
 from matplotlib.lines import Line2D
 import matplotlib.lines as mlines
 import gzip
+import matplotlib.patches as mpatches
 
 
 
@@ -26,7 +27,8 @@ def diff_visualizations():
     
     topology_supports = {}
     unfiltered_topology_supports = {}
-    newick_strings = []
+    newick_strings = [] #FILTERED NEWICKS FROM SEALION (if fully rejected == 0)
+    newick_strings1 = [] #UNFILTERED NEWICKS FROM SEALION
 
     for j in range(1, 61):
         tsv_location = f'/home/s36jshem_hpc/sealion/sealion_script/runs_dir/clade_files_2025-05-15_20-59-58_10000/sealion_runs/clade_file_{j}.fas/testresult_clade_file_{j}/TSV'
@@ -38,7 +40,6 @@ def diff_visualizations():
         best_newick = ''
         best_sup = 0
         best_sup1 = 0
-
         
         for data_files in os.listdir(tsv_location):
             if data_files.startswith('MQ1'):
@@ -71,8 +72,12 @@ def diff_visualizations():
 
         topology_supports[f'clade_file_{j}'] = [best_sup, best_newick if best_newick else "N/A"]
         if best_newick1:
-            newick_strings.append(best_newick1)
-  
+            newick_strings1.append(best_newick1)
+        if best_newick:
+            newick_strings.append(best_newick)
+        else:
+            newick_strings.append(0)
+
         unfiltered_topology_supports[f'clade_file_{j}'] = [best_sup1, best_newick1]
     # Build color mapping for unique topologies
     unique_topologies = sorted(set(value[1] for value in topology_supports.values()))
@@ -93,7 +98,6 @@ def diff_visualizations():
         bar_colors.append(color_map[topology])
         topologies.append(topology)
 
-
     # Plot
     plt.figure(figsize=(14, 6))
     plt.bar(labels, supports, color=bar_colors)
@@ -107,7 +111,7 @@ def diff_visualizations():
 
     for idx, (support, topology) in enumerate(zip(supports, topologies)):
         if topology == "N/A":
-                plt.scatter(idx, support + 0.02, marker="*", color="red", s=200, label="Unsupported" if idx == 0 else "")
+                plt.scatter(idx, support + 0.02, marker="*", color="red", s=200, label="Rejected" if idx == 0 else "")
 
     # Add dashed lines
     for x in range(10, 60, 10):
@@ -145,9 +149,9 @@ def diff_visualizations():
 
     plt.close()
 
-    return best_newick, best_sup, saving_location, newick_strings, clade_file_location, clade_file_time, tsv_location, unfiltered_topology_supports
+    return best_newick, best_sup, saving_location, newick_strings1, clade_file_location, clade_file_time, tsv_location, unfiltered_topology_supports, newick_strings
 
-best_newick, best_sup, saving_location, newick_strings, clade_file_location, clade_file_time, tsv_location, unfiltered_topology_supports = diff_visualizations()
+best_newick, best_sup, saving_location, newick_strings1, clade_file_location, clade_file_time, tsv_location, unfiltered_topology_supports, newick_strings = diff_visualizations()
 
 ################################################################################
 ###This should graph the same as above albeit the UNFILTERED supports  #########
@@ -223,7 +227,6 @@ def unfiltered_quartet_supports(unfiltered_topology_supports):
     plt.close()
 
 #unfiltered_quartet_supports(unfiltered_topology_supports)
-
 
 ###############################################################################################
 ###This should graph the same topology graph as the two above but for the IQTREE analyis  #####
@@ -336,13 +339,13 @@ def IQ_quartet_supports():
 
     plt.close()
 
-IQ_quartet_supports()
+#IQ_quartet_supports()
 
-########################################################################################################################################################
-###This function should take the newick string from our sea_lion output file, cross check it with the original, then graphs the correct ones ###########
-#### vs the incorrect ones.                                    #########################################################################################
-########################################################################################################################################################
-def graph_correct_outputs(correct_newick, tq_dist_path):
+###############################################################################################################################################################
+###This function should take the UNFILTERED newick string from our SeaLion output file, cross check it with the original, then graphs the correct ones ########
+#### vs the incorrect ones.                                    ################################################################################################
+###############################################################################################################################################################
+def graph_correct_outputs(newick_strings1, correct_newick, tq_dist_path):
 
     
     def stripped_newick(string):
@@ -354,7 +357,7 @@ def graph_correct_outputs(correct_newick, tq_dist_path):
     results = []
     
 
-    for i in newick_strings: #Newick strings contains the unfiltered score newick strings
+    for i in newick_strings1: #Newick strings contains the unfiltered score newick strings, and comes from the diff_visualizations() function
         with open(newick_file_path, 'w') as f:
             f.write(stripped_newick(i))
         with open(user_newick_path, 'w') as f:
@@ -372,7 +375,6 @@ def graph_correct_outputs(correct_newick, tq_dist_path):
     correct_counts = [results[i:i + 10].count(0) for i in range(0, 60, 10)]
     incorrect_counts = [results[i:i + 10].count(1) for i in range(0, 60, 10)]
     percent_counts = [(correct / (correct + incorrect)) if (correct + incorrect) > 0 else 0 for correct, incorrect in zip(correct_counts, incorrect_counts)]
-
     
     # Plotting the results
     x = range(6)
@@ -407,11 +409,87 @@ def graph_correct_outputs(correct_newick, tq_dist_path):
     plt.show()
 
 
-    return csv_path, clade_file_location
+    return csv_path, clade_file_location, results
 
 correct_newick = "(((A,B),C),D);"
 tq_dist = '/home/s36jshem_hpc/sealion/runs'
-#csv_path, clade_file_location = graph_correct_outputs(correct_newick, tq_dist)
+csv_path, clade_file_location, results = graph_correct_outputs(newick_strings1, correct_newick, tq_dist)
+
+###############################################################################################################################################################
+###This function should take the FILTERED newick string from our SeaLion output file, cross check it with the original, then graphs the correct ones ##########
+#### vs the incorrect ones.                                    ################################################################################################
+###############################################################################################################################################################
+def graph_correct_outputs2(newick_strings, correct_newick, tq_dist_path):
+
+    def stripped_newick(string):
+        return re.sub(r'([0-9.e-]+|#[A-Za-z0-9_]+)', '', string)
+
+    newick_path = f"{saving_location}"
+    newick_file_path = os.path.join(newick_path, 'newickfile1.txt')
+    user_newick_path = os.path.join(newick_path, 'newickfile_user.txt' )
+    results_filtered = []
+    rejected_focused = []
+    for i in newick_strings:
+        if i: #Newick strings contains the filtered score newick strings, and comes from the diff_visualizations() function
+            with open(newick_file_path, 'w') as f:
+                f.write(str(i))
+            with open(user_newick_path, 'w') as f:
+                f.write(correct_newick)
+
+        
+            command = f"/home/s36jshem_hpc/local/bin/quartet_dist {newick_file_path} {user_newick_path}"
+            result = subprocess.run(command, cwd=tq_dist_path, shell=True, capture_output = True, text = True)
+            output = result.stdout.strip()
+            results_filtered.append(int(output))
+            rejected_focused.append('unrejected')
+        else:
+            results_filtered.append(int(1))
+            rejected_focused.append('rejected')
+
+    # Preparing the data for graphing
+    gc_contents = [47 + (i // 10) * 4 for i in range(60)]
+    gc_content_labels = [f"{47 + i * 4}%" for i in range(6)]
+    correct_counts = [results_filtered[i:i + 10].count(0) for i in range(0, 60, 10)]
+    incorrect_counts = [results_filtered[i:i + 10].count(1) for i in range(0, 60, 10)]
+    percent_counts = [(correct / (correct + incorrect)) if (correct + incorrect) > 0 else 0 for correct, incorrect in zip(correct_counts, incorrect_counts)]
+    # Plotting the results
+    x = range(6)
+    y = percent_counts
+    #coefficients = np.polyfit(x, y, deg=1)
+    #polynomial = np.poly1d(coefficients)
+    #regression_line = polynomial(x)
+
+    #This saves the x,y data as a csv for future graph overlays
+    csv_output = {x_axis:y_axis for x_axis,y_axis in zip(list(x),y)}
+    numpy_csv = np.array(list(csv_output.items()))
+    csv_path = os.path.join(f'{saving_location}/RISKDIST_Tree_Success_GC_Content_SeaLion.csv')
+    savetxt(csv_path, numpy_csv, delimiter=',') 
+
+    #formatted_newick_tree = '\n'.join(textwrap.wrap(user_data['tree'], width=40))
+    #formatted_newick_model = '\n'.join(textwrap.wrap(user_data['b1'], width=40))
+
+    #legend_label = f'Newick Branch Lengths:\n{formatted_newick_tree}\n\nNewick Model:\n{formatted_newick_model}'
+    custom_legend = Line2D([0], [0], linestyle='None', marker='o', color='green', label='SeaLion (RISK+DIST)')
+
+    plt.figure(figsize=(10, 6))
+    plt.plot(x, y, linestyle='--', marker='o', color='green', label='Data Points')
+
+    plt.xlabel('GC Content')
+    plt.ylabel('% Tree Success')
+    plt.title('Tree Success by GC Content (SeaLion)')
+    plt.xticks(x, gc_content_labels)
+    plt.legend(handles=[custom_legend], loc='upper right', fontsize='x-small')
+
+    
+    plt.savefig((f'{saving_location}/RISKDIST_Tree_Success_GC_Content_SeaLion.png'))
+    plt.show()
+
+
+    return csv_path, clade_file_location, results_filtered, rejected_focused
+
+correct_newick = "(((A,B),C),D);"
+tq_dist = '/home/s36jshem_hpc/sealion/runs'
+#csv_path1, clade_file_location, results_filtered, rejected_focused = graph_correct_outputs2(newick_strings, correct_newick, tq_dist)
 
 #############################################################################################################################################
 ###This function should take the newick string from our tree file, cross check it with the original, then graphs the correct ones ###########
@@ -518,13 +596,48 @@ def IQ_correct(IQ_csv_location):
 #IQ_csv_location = f'/home/s36jshem_hpc/sealion/plots/clade_files_2025-05-15_20-59-58/2025-05-15_20-59-58.csv'
 #IQ_correct(IQ_csv_location)
 
+##################################################################################################################
+#### This function should overlay the correct vs incorrect vs rejected from Unfiltered SeaLion          ##########
+##################################################################################################################
+def correct_incorrect_rejected_filtered(results_filtered, rejected_focused):
+    gc_contents = [47 + (i // 10) * 4 for i in range(60)]
+    gc_content_labels = [f"{47 + i * 4}%" for i in range(6)]
+    correct_counts = [results_filtered[i:i + 10].count(0) for i in range(0, 60, 10)]
+    correct_percent = [int(i)/10 for i in correct_counts]
+    incorrect_counts = [results_filtered[i:i + 10].count(1) for i in range(0, 60, 10)]
+    incorrect_percent = [int(i)/10 for i in incorrect_counts]
+    percent_counts = [(correct / (correct + incorrect)) if (correct + incorrect) > 0 else 0 for correct, incorrect in zip(correct_counts, incorrect_counts)]
+    rejected_counts = [0 if i == 'unrejected' else 1 for i in rejected_focused]
+    rejected_counts1 = [rejected_counts[i:i+10].count(1) for i in range(0,60,10)]
+    rejected_percent= [int(i)/10 for i in rejected_counts1]
+
+    x = range(6)
+    plt.figure(figsize=(10, 6))
+    plt.plot(x, correct_percent, linestyle='--', marker='o', color='green', label='Correct Topologies')
+    plt.plot(x, incorrect_percent, linestyle='--', marker='o', color='darkgoldenrod', label='Incorrect Topologies')
+    plt.plot(x, rejected_percent, linestyle='--', marker='o', color='darkviolet', label='Rejected Topologies')
+
+    plt.xlabel('GC Content')
+    plt.ylabel('% Tree Success')
+    plt.ylim(0,1)
+    plt.title('Tree Success, Rejection, and Failure (SeaLion)')
+    plt.xticks(x, gc_content_labels)
+    plt.legend()
+
+    
+    plt.savefig((f'{saving_location}correct_incorrect_rejected_SeaLion.png'))
+    plt.show()
+
+#correct_incorrect_rejected_filtered(results_filtered, rejected_focused)
+
 ###################################################################################################################################
-#### This function should overlay the correct vs incorrect from SeaLion v the correct v incorrect from IQTREE #####################
+#### This function should overlay the correct vs incorrect from Unfiltered SeaLion v the correct v incorrect from IQTREE ##########
 ###################################################################################################################################
-def overlay_correct(IQ_csv_location):
+def overlay_correct(csv_path, IQ_csv_location):
     
     data1 = np.loadtxt(IQ_csv_location, delimiter=',')
     data2 = np.loadtxt(csv_path, delimiter=',')
+
 
     x1, y1 = data1[:, 0], data1[:, 1]
     x2, y2 = data2[:, 0], data2[:, 1]
@@ -542,13 +655,46 @@ def overlay_correct(IQ_csv_location):
     plt.tight_layout()
 
     # Save and show
+    plt.savefig(f'{saving_location}/Unfiltered_Overlay_Tree_Success.png', dpi=300)
+    plt.show()
+
+    return x1, y1, x2, y2
+
+#IQ_csv_location = f'/home/s36jshem_hpc/sealion/plots/clade_files_2025-05-15_20-59-58/IQTREE_Success_GC_Content.csv'
+#x1, y1, x2, y2 = overlay_correct(csv_path, IQ_csv_location)
+
+###################################################################################################################################
+#### This function should overlay the correct vs incorrect from Filtered SeaLion v the correct v incorrect from IQTREE ############
+###################################################################################################################################
+def overlay_correct2(csv_path1, IQ_csv_location):
+    
+    data1 = np.loadtxt(IQ_csv_location, delimiter=',')
+    data2 = np.loadtxt(csv_path1, delimiter=',')
+
+
+    x1, y1 = data1[:, 0], data1[:, 1]
+    x2, y2 = data2[:, 0], data2[:, 1]
+
+    plt.figure(figsize=(10, 5))
+    plt.plot(x1, y1, marker='o', linestyle='--', color='blue', label='ML(IQTREE)')
+    plt.plot(x2, y2, marker='o', linestyle='--', color='green', label='SeaLion')
+
+    plt.xlabel('GC Content Group')
+    plt.ylabel('% Correct Topologies')
+    plt.title('Overlay of Correct Topology Matches by GC Content (RISK+DIST)')
+    plt.xticks(ticks=range(6), labels=[f"{47 + i * 4}%" for i in range(6)])
+    plt.ylim(0, 1)
+    plt.legend()
+    plt.tight_layout()
+
+    # Save and show
     plt.savefig(f'{saving_location}/Overlay_Tree_Success.png', dpi=300)
     plt.show()
 
     return x1, y1, x2, y2
 
-IQ_csv_location = f'/home/s36jshem_hpc/sealion/plots/clade_files_2025-05-15_20-59-58/IQTREE_Success_GC_Content.csv'
-#x1, y1, x2, y2 = overlay_correct(IQ_csv_location)
+#x1, y1, x2, y2 = overlay_correct2(csv_path1, IQ_csv_location)
+
 
 ########################################################################################################
 ### This graphs the difference between the best and second best tree topologys from SeaLion ############
@@ -586,13 +732,13 @@ def diff_graphs(tsv_location):
                                 except Exception:
                                     scores.append(0)
                 if len(scores) >= 2:
-                    top_two = sorted(scores)[0:2]
+                    top_two = sorted(scores, reverse = True)[0:2]
                     diff.append(top_two[0] - top_two[1])
                     scores = []
                 elif len(scores) < 2:
                     diff.append(0)
                 if scores1:
-                    top_two1 = sorted(scores1)[0:2]
+                    top_two1 = sorted(scores1, reverse = True)[0:2]
                     diff1.append(top_two1[0] - top_two1[1])
                     scores1 = []
 
@@ -611,7 +757,8 @@ def diff_graphs(tsv_location):
     incomplete_x = [i+1 for i,v in enumerate(differences) if v == 0]
     incomplete_y = [0] * len(incomplete_x)
     plt.scatter(incomplete_x, incomplete_y, marker='*', color='black', s=180, label='Fully Rejected')
-    
+    plt.axhline(y=.2, color='blue', linestyle=':', linewidth=1, label=f'High Conflict Below')
+
 
         # Add dashed lines
     for x in range(10, 60, 10):
@@ -641,7 +788,7 @@ def diff_graphs(tsv_location):
 
     return differences, differencesU
     
-#differences, differencesU = diff_graphs(tsv_location)
+differences, differencesU = diff_graphs(tsv_location)
 
 ##############################################################################
 ### Same as the graph above but for unfiltered data ##########################
@@ -651,7 +798,7 @@ def diff_graphs1(differencesU):
     y_axis = range(1, 61)
     plt.figure(figsize=(16, 5))
     plt.plot(y_axis, differencesU, marker='+', linestyle='--', color='red', label='Sealion Support Δ' )
-
+    plt.axhline(y=.2, color='blue', linestyle=':', linewidth=1, label=f'High Conflict Below')
         # Add dashed lines
     for x in range(10, 60, 10):
         plt.axvline(x=x - 0.5, color='lightcoral', linestyle='--', linewidth=1)
@@ -680,6 +827,33 @@ def diff_graphs1(differencesU):
 
 #diff_graphs1(differencesU)
 
+
+##############################################################################
+### Shows the delta when the tree is correct v. incorrect ####################
+##############################################################################
+def diff_tree_correct_v_incorrect(differences):
+    for j in range(1,61):
+        newicks_scores = {}
+        tsv_location = f'/home/s36jshem_hpc/sealion/sealion_script/runs_dir/clade_files_2025-05-15_20-59-58_10000/sealion_runs/clade_file_{j}.fas/testresult_clade_file_{j}/TSV'
+        match = re.search(r'testresult_clade_file_\d+', tsv_location)
+        if match:
+                clade_file_location = match.group()
+        for data_files in os.listdir(tsv_location):
+            if data_files.startswith('MQ1'):
+                data_file = data_files
+                median_file = os.path.join(tsv_location, data_file)
+                with open(median_file, 'r') as f:
+                    for line in f:
+                        line = line.strip().split()
+                        try:
+                            if 'median' in line:
+                                newicks_scores[line[1]] = line[3]
+                                sorted_dict = dict(sorted(newicks_scores.items(), key = lambda item: item[1], reverse = True))
+                                #print(sort) #This is unfiltered data
+                        except Exception as e:
+                            pass
+
+#diff_tree_correct_v_incorrect(differences)
 ########################################################################################################################################################
 ### This graphs the difference between the best and second best tree topologys from IQTREE indicated by log-likelihood        ##########################
 ########################################################################################################################################################
@@ -773,6 +947,7 @@ def combined_graph(differences, differencesU):
     incomplete_x = [i + 1 for i, v in enumerate(differences) if v == 0]
     incomplete_y = [0] * len(incomplete_x)
     ax1.scatter(incomplete_x, incomplete_y, marker='.', color='darkgoldenrod', s=180, label='Fully Rejected')
+    plt.axhline(y=.2, color='mediumvioletred', linestyle=':', linewidth=1, label=f'High Conflict Below')
 
     # Add dashed lines and shaded regions for filtered data
     for x in range(10, 60, 10):
@@ -794,7 +969,7 @@ def combined_graph(differences, differencesU):
 
 
     # Add legends for both datasets
-    fig.legend(loc='upper right', bbox_to_anchor=(0.9, 0.85), bbox_transform=ax1.transAxes)
+    fig.legend(loc='upper right', bbox_to_anchor=(0.95, 0.85), bbox_transform=ax1.transAxes)
 
     # Title and layout
     plt.title('Comparison of Filtered and Unfiltered Δ Support')
@@ -844,7 +1019,7 @@ def combined_graph_bar(differences, differencesU):
     ax2.tick_params(axis='y', labelcolor='seagreen')
 
     # Add legends for both datasets
-    fig.legend(loc='upper right', bbox_to_anchor=(0.9, 0.85), bbox_transform=ax1.transAxes)
+    fig.legend(loc='upper right', bbox_to_anchor=(.98, .9), bbox_transform=ax1.transAxes)
 
     # Title and layout
     plt.title('Comparison of Filtered and Unfiltered Δ Support')
@@ -977,7 +1152,129 @@ def combined_graph_IQ_Unfil(differencesU, diffs, indices, saving_location):
 
 #combined_graph_IQ_Unfil(differencesU, diffs, indices, saving_location)
 
-#### THIS DOESNT WORK UNLESS THERE ARE THE RIGHT AMOUNT OF ALL OF SEALION IS FINISHED!!!! 
+################################################################################################################
+### This should look at the difference between correct topology support before and after filtering Barchart ####        
+################################################################################################################
+def support_b4_af_filtering(results):
+    after_support = []
+    before_support = []
+    rejected = []
+    for j in range(1,61):
+        tsv_location = f'/home/s36jshem_hpc/sealion/sealion_script/runs_dir/clade_files_2025-05-15_20-59-58_10000/sealion_runs/clade_file_{j}.fas/testresult_clade_file_{j}/TSV'
+        match = re.search(r'testresult_clade_file_\d+', tsv_location)
+        if match:
+                clade_file_location = match.group()
+        for data_files in os.listdir(tsv_location):
+            if data_files.startswith('MQ1_') and data_files.endswith('average_tree_support.tsv'):
+                data_file = data_files
+                median_file = os.path.join(tsv_location, data_file)
+                with open(median_file, 'r') as f:
+                    for line in f:
+                        try:
+                            if 'median' in line and '(D,(C,(A,B)));' in line:
+                                parts = line.split()
+                                after_support.append(parts[6])
+                                before_support.append(parts[3])
+                                rejected.append(0)
+                        except IndexError as e:
+                            rejected.append(1)
+                            after_support.append(0)
+                            before_support.append(0)
+                            pass
+    difference = [float(after) - float(before) for before, after in zip(before_support, after_support)]
+    x_axis = range(1,61)
+    y_1 = [float(i) for i in difference]
+    colors = ['darkorange' if i > 0 else 'skyblue' for i in y_1]
+    plt.figure(figsize=(12, 6))
+
+    # Plot before and after support
+    plt.bar(x_axis, y_1, color=colors, edgecolor='black', label='Difference before v. after filtering')
+    label_added = False  # Flag to add the label only once
+
+
+    for x, rej in zip(x_axis, rejected):
+        if rej == 1:
+            plt.scatter(x, 0, marker="x", color="black", s=100, label="rejected" if not label_added else "")
+            label_added = True
+    
+    for x, res in zip(x_axis, results):
+        print(x, res)
+        if res == 1:
+            plt.bar(x, y_1[x-1], color='red', edgecolor='black', label='Failed Topologies')
+    
+    x_handle = mlines.Line2D([], [], color='none', marker='x', markersize=10, 
+                        markerfacecolor='red', label='Rejected', linestyle='None')
+
+    # Labels and title
+    plt.xlabel('Dataset Index')
+    plt.ylabel('Support Value')
+    plt.title('Δ Correct Topology After Filtering vs. Before Filtering')
+    plt.xticks(ticks=list(x_axis), labels=[str(i) for i in x_axis], rotation=45)
+    plt.ylim(-0.05, 0.12)
+    legend_patch = mpatches.Patch(color='gray', label='Difference After v. Before filtering')
+    legend_patch1 = (mpatches.Patch(color='red', label='Failed Topologies'))
+    plt.legend(handles=[legend_patch, x_handle, legend_patch1])  
+    plt.tight_layout()
+
+    # Save and show
+    plt.savefig(f'{saving_location}/Correct_Topology_b4_After_Filtering_Bar.png', dpi=300)
+    plt.show()
+
+support_b4_af_filtering(results)
+
+##########################################################################################################
+### This should look at the correct topology support before and after filtering LineGraph (DONT LOVE) ####     
+##########################################################################################################
+def support_b4_af():
+
+    after_support = []
+    before_support = []
+    for j in range(1,61):
+        tsv_location = f'/home/s36jshem_hpc/sealion/sealion_script/runs_dir/clade_files_2025-05-15_20-59-58_10000/sealion_runs/clade_file_{j}.fas/testresult_clade_file_{j}/TSV'
+        match = re.search(r'testresult_clade_file_\d+', tsv_location)
+        if match:
+                clade_file_location = match.group()
+        for data_files in os.listdir(tsv_location):
+            if data_files.startswith('MQ1_') and data_files.endswith('average_tree_support.tsv'):
+                data_file = data_files
+                median_file = os.path.join(tsv_location, data_file)
+                with open(median_file, 'r') as f:
+                    for line in f:
+                        try:
+                            if 'median' in line and '(D,(C,(A,B)));' in line:
+                                parts = line.split()
+                                before_support.append(parts[3])
+                                after_support.append(parts[6])
+                        except IndexError as e:
+                            after_support.append(0)
+                            pass
+    x_axis = range(len(before_support))
+    y_1 = [float(i) for i in before_support]
+    y_2 = [float(i) for i in after_support]
+
+    plt.figure(figsize=(12, 6))
+
+    # Plot before and after support
+    plt.plot(x_axis, y_1, marker='o', linestyle='-', color='red', label='Before Filtering')
+    plt.plot(x_axis, y_2, marker='o', linestyle='-', color='blue', label='After Filtering (RISK + DIST)')
+
+    # Labels and title
+    plt.xlabel('Dataset Index')
+    plt.ylabel('Support Value')
+    plt.title('Correct Topology Before Filtering vs. After Filtering')
+
+    plt.xticks(ticks=x_axis, labels=[str(i) for i in x_axis], rotation=45)    
+    plt.ylim(0, 1)
+    plt.legend()
+    plt.tight_layout()
+
+    # Save and show
+    plt.savefig(f'{saving_location}/SeaLion_correct_topology_b4_after_filtering.png', dpi=300)
+    plt.show()
+                           
+#support_b4_af()
+
+#### THIS DOESNT WORK RIGHT!!! 
 #######################################################################
 ### This graphs the rejected trees as a function of the GC contents ###   
 #######################################################################
@@ -1030,109 +1327,7 @@ def reject_GC():
     plt.savefig(f'{saving_location}/Box_Whisk_SeaLion_percent_rejected.png', dpi=300)
     plt.show()
 
-#reject_GC()
-
-####################################################################################
-### This should look at the correct topology support before and after filtering ####     
-####################################################################################
-def support_b4_af():
-
-    after_support = []
-    before_support = []
-    for j in range(1,61):
-        tsv_location = f'/home/s36jshem_hpc/sealion/sealion_script/runs_dir/clade_files_2025-05-15_20-59-58_10000/sealion_runs/clade_file_{j}.fas/testresult_clade_file_{j}/TSV'
-        match = re.search(r'testresult_clade_file_\d+', tsv_location)
-        if match:
-                clade_file_location = match.group()
-        for data_files in os.listdir(tsv_location):
-            if data_files.startswith('MQ1_') and data_files.endswith('average_tree_support.tsv'):
-                data_file = data_files
-                median_file = os.path.join(tsv_location, data_file)
-                with open(median_file, 'r') as f:
-                    for line in f:
-                        if 'median' in line and '(D,(C,(A,B)));' in line:
-                            parts = line.split()
-                            after_support.append(parts[6])
-                            before_support.append(parts[3])
-
-    x_axis = range(len(before_support))
-    y_1 = [float(i) for i in before_support]
-    y_2 = [float(i) for i in after_support]
-
-    plt.figure(figsize=(12, 6))
-
-    # Plot before and after support
-    plt.plot(x_axis, y_1, marker='o', linestyle='-', color='red', label='Before Filtering')
-    plt.plot(x_axis, y_2, marker='o', linestyle='-', color='blue', label='After Filtering (RISK + DIST)')
-
-    # Labels and title
-    plt.xlabel('Dataset Index')
-    plt.ylabel('Support Value')
-    plt.title('Correct Topology Before Filtering vs. After Filtering')
-
-    plt.xticks(ticks=x_axis, labels=[str(i) for i in x_axis], rotation=45)    
-    plt.ylim(-0.2, 1)
-    plt.legend()
-    plt.tight_layout()
-
-    # Save and show
-    plt.savefig(f'{saving_location}/SeaLion_correct_topology_b4_after_filtering.png', dpi=300)
-    plt.show()
-                           
-#support_b4_af()
-
-
-#######################################################################################################
-### This should look at the difference between correct topology support before and after filtering ####        
-#######################################################################################################
-def support_b4_af_filtering():
-
-    after_support = []
-    before_support = []
-    for j in range(1,61):
-        tsv_location = f'/home/s36jshem_hpc/sealion/sealion_script/runs_dir/clade_files_2025-05-15_20-59-58_10000/sealion_runs/clade_file_{j}.fas/testresult_clade_file_{j}/TSV'
-        match = re.search(r'testresult_clade_file_\d+', tsv_location)
-        if match:
-                clade_file_location = match.group()
-        for data_files in os.listdir(tsv_location):
-            if data_files.startswith('MQ1_') and data_files.endswith('average_tree_support.tsv'):
-                data_file = data_files
-                median_file = os.path.join(tsv_location, data_file)
-                with open(median_file, 'r') as f:
-                    for line in f:
-                        if 'median' in line and '(D,(C,(A,B)));' in line:
-                            parts = line.split()
-                            after_support.append(parts[6])
-                            before_support.append(parts[3])
-
-    difference = [float(after) - float(before) for before, after in zip(before_support, after_support)]
-    x_axis = range(len(before_support))
-    y_1 = [float(i) for i in difference]
-
-    plt.figure(figsize=(12, 6))
-
-    # Plot before and after support
-    plt.bar(x_axis, y_1, color='skyblue', edgecolor='black', label='Difference before v. after filtering')
-
-    # Labels and title
-    plt.xlabel('Dataset Index')
-    plt.ylabel('Support Value')
-    plt.title('Difference in Correct Topology Before Filtering vs. After Filtering (D,(C,(A,B)));')
-
-    plt.xticks(ticks=x_axis, labels=[str(i) for i in x_axis], rotation=45)    
-    plt.ylim(-.05, .12)
-    plt.legend()
-    plt.tight_layout()
-
-    # Save and show
-    plt.savefig(f'{saving_location}/SeaLion_before_after_support_difference.png', dpi=300)
-    plt.show()
-
-#support_b4_af_filtering()
-
-
-
-
+reject_GC()
 
 
 
@@ -1174,9 +1369,9 @@ def support_b4_af_filtering():
     newick_corrected_path = '/home/s36jshem_hpc/sealion/runs/corrected_newick_output_2025-05-15_20-59-58_10000'
     user_newick = '(((A,B),C),D);'
     tq_dist_path = '/home/s36jshem_hpc/local/bin/quartet_dist'
-    def extract_number(file_name):
-        match = re.search(r'\d+', file_name)
-        return int(match.group()) if match else -1
+    #def extract_number(file_name):
+        #match = re.search(r'\\d+', file_name)
+        #return int(match.group()) if match else -1
 
     newick_strings = []
     for file in sorted(os.listdir(newick_corrected_path), key = extract_number):
@@ -1214,7 +1409,7 @@ def support_b4_af_filtering():
     user_newick = '(((A,B),C),D);'
     tq_dist_path = '/home/s36jshem_hpc/local/bin/quartet_dist'
     def extract_number(file_name):
-        match = re.search(r'\d+', file_name)
+        match = re.search(r'\\d+', file_name)
         return int(match.group()) if match else -1
 
     newick_strings = []
