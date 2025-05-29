@@ -7,6 +7,7 @@ import os
 import os
 import collections
 
+'''
 # Define GC file path
 gc_file_path = f'/home/s36jshem_hpc/sealion/plots/clade_files_2025-05-15_20-59-58/GC_table'
 os.makedirs(gc_file_path, exist_ok=True)  # Ensure directory exists
@@ -53,6 +54,42 @@ for i in range(1, 61):
 
             # Write to output file in CSV format
             f.write(f"{os.path.basename(path)}\t,{header}\t,{gc_content:.2f}\t,{total_sum}\n")
+'''
+
+
+def gc_content(seq):
+    g = seq.count('G')
+    c = seq.count('C')
+    total = len(seq)
+    return (g + c) / total * 100 if total > 0 else 0
+
+# Path to the FASTA file
+path = f'/home/s36jshem_hpc/sealion/runs/ALI_output/fastaout_50.fa'
+print(f"\n📂 Processing: {path}")
+
+# Read and parse the FASTA file
+sequences = []
+headers = []
+current_seq = ""
+
+with open(path, 'r') as f:
+    for line in f:
+        line = line.strip()
+        if line.startswith(">"):
+            if current_seq:
+                sequences.append(current_seq)
+                current_seq = ""
+            headers.append(line[1:])  # Remove '>'
+        else:
+            current_seq += line
+    if current_seq:  # Add the last sequence
+        sequences.append(current_seq)
+
+# Print GC content for each sequence
+print("\n📊 GC Content by Sequence:\n")
+for header, seq in zip(headers, sequences):
+    gc = gc_content(seq)
+    print(f"{header:<10} | GC: {gc:5.2f}% | Length: {len(seq)}")
 
 
             

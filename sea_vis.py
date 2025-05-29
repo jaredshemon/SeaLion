@@ -134,7 +134,7 @@ def diff_visualizations():
     plt.legend(handles=legend_handles, bbox_to_anchor=(1, 0.95))
 
     plt.xlabel('Dataset')
-    plt.ylabel('Support Value (Max 2)')
+    plt.ylabel('Support Value (Max 1)')
     plt.title('Best Supported RISK+DIST Filtered SeaLion Topology per Clade File (Colored by Topology)')
     plt.xticks(rotation=90)
     plt.ylim(0, 1)
@@ -211,7 +211,7 @@ def unfiltered_quartet_supports(unfiltered_topology_supports):
     plt.legend(handles=legend_handles, bbox_to_anchor=(1, 0.95))
 
     plt.xlabel('Dataset')
-    plt.ylabel('Support Value (Max 2)')
+    plt.ylabel('Support Value (Max 1)')
     plt.title('Best Supported Unfiltered SeaLion Topology per Clade File (Colored by Topology)')
     plt.xticks(rotation=90)
     plt.ylim(0, 1)
@@ -226,7 +226,7 @@ def unfiltered_quartet_supports(unfiltered_topology_supports):
 
     plt.close()
 
-#unfiltered_quartet_supports(unfiltered_topology_supports)
+unfiltered_quartet_supports(unfiltered_topology_supports)
 
 ###############################################################################################
 ###This should graph the same topology graph as the two above but for the IQTREE analyis  #####
@@ -299,7 +299,7 @@ def IQ_quartet_supports():
 
     x = np.arange(1,61)
     # Assign colors based on results (0 = correct, 1 = incorrect)
-    colors = ['orange' if result == 0 else 'blue' for result in results]
+    colors = ['1f77b4' if result == 0 else 'blue' for result in results]
 
     plt.figure(figsize=(16, 6))
     plt.bar(x, y_labels, color=colors, align='center')
@@ -695,10 +695,9 @@ def overlay_correct2(csv_path1, IQ_csv_location):
 
 #x1, y1, x2, y2 = overlay_correct2(csv_path1, IQ_csv_location)
 
-
-########################################################################################################
-### This graphs the difference between the best and second best tree topologys from SeaLion ############
-########################################################################################################
+#################################################################################################################################################
+### This graphs the difference between the best and second best tree topologys from SeaLion ONLY POSITIVE BECAUSE THE DICT IS SORTED ############
+#################################################################################################################################################
 def diff_graphs(tsv_location):
 
     diff = []
@@ -732,8 +731,8 @@ def diff_graphs(tsv_location):
                                 except Exception:
                                     scores.append(0)
                 if len(scores) >= 2:
-                    top_two = sorted(scores, reverse = True)[0:2]
-                    diff.append(top_two[0] - top_two[1])
+                    top_two = sorted(scores, reverse = True)[0:2] #THE ISSUE WITH THIS IS IT'S ALWAYS POSITIVE, BECAUSE IT SORTS THE LARGEST FIRSTs
+                    diff.append(top_two[0] - top_two[1]) 
                     scores = []
                 elif len(scores) < 2:
                     diff.append(0)
@@ -790,9 +789,9 @@ def diff_graphs(tsv_location):
     
 differences, differencesU = diff_graphs(tsv_location)
 
-##############################################################################
-### Same as the graph above but for unfiltered data ##########################
-##############################################################################
+############################################################################################
+### Same as the graph above but for unfiltered data ONLY POSITIVE ##########################
+############################################################################################
 def diff_graphs1(differencesU):
 
     y_axis = range(1, 61)
@@ -827,11 +826,10 @@ def diff_graphs1(differencesU):
 
 #diff_graphs1(differencesU)
 
-
-##############################################################################
-### Shows the delta when the tree is correct v. incorrect ####################
-##############################################################################
-def diff_tree_correct_v_incorrect(differences):
+############################################################################################
+### Shows the delta when the tree is correct v. incorrect ONLY POSITIVE ####################
+############################################################################################
+def diff_tree_correct_v_incorrect(differencesU, results):
     for j in range(1,61):
         newicks_scores = {}
         tsv_location = f'/home/s36jshem_hpc/sealion/sealion_script/runs_dir/clade_files_2025-05-15_20-59-58_10000/sealion_runs/clade_file_{j}.fas/testresult_clade_file_{j}/TSV'
@@ -848,12 +846,54 @@ def diff_tree_correct_v_incorrect(differences):
                         try:
                             if 'median' in line:
                                 newicks_scores[line[1]] = line[3]
-                                sorted_dict = dict(sorted(newicks_scores.items(), key = lambda item: item[1], reverse = True))
+                                sorted_dict = dict(sorted(newicks_scores.items(), key = lambda item: item[1], reverse = True)) ###This is just coding for fun I guess, this whole block is useless
                                 #print(sort) #This is unfiltered data
                         except Exception as e:
                             pass
 
-#diff_tree_correct_v_incorrect(differences)
+    plt.figure(figsize=(18, 5))
+    x_axis = range(1,61)
+    y_axis = [float(i) for i in differencesU]
+    for x, res  in zip(x_axis, results):
+        if res == 0:
+            plt.bar(x, y_axis[x-1], color = 'skyblue', label = 'Correct Topology Δ' )
+        else:
+            plt.bar(x, y_axis[x-1], color = 'seagreen', label = 'Incorrect Topology Δ')
+
+
+    # Add dashed lines
+    for x in range(10, 60, 10):
+        plt.axvline(x=x - 0.5, color='red', linestyle='--', linewidth=1)
+
+    #Add shaded backgrounds
+    for i in range(0, 60, 20):  # every other bin
+        plt.axvspan(i - 0.5, i + 9.5, color='gray', alpha=0.1)
+
+    #GC content annotations
+    gc_labels = [47, 51, 55, 59, 63, 67]
+    for i, gc in enumerate(gc_labels):
+        plt.text(i * 10 + 5, .95, f'{gc}%', ha='center', va='top', fontsize=9, transform=plt.gca().transData)
+    
+    threshold = .2
+    plt.axhline(y=threshold, color='lightcoral', linestyle=':', linewidth=1)
+    plt.text(61, 0.1, 'High Conflict', color='black', fontsize=10, va='top')
+
+
+    plt.xlabel('Dataset Index')
+    plt.ylabel('Δ of Support Values')
+    plt.title('Δ Correct Topology v. Incorrect Topology')
+    plt.xticks(ticks=list(x_axis), labels=[str(i) for i in x_axis], rotation=45)
+    plt.ylim(0,1)
+    legend_patch = mpatches.Patch(color='skyblue', label='Correct Topology Δ')
+    legend_patch1 = (mpatches.Patch(color='seagreen', label='Incorrect Topology Δ'))
+    plt.legend(handles=[legend_patch, legend_patch1])  
+    plt.tight_layout()
+
+    # Save and show
+    plt.savefig(f'{saving_location}/Δ_Correct_Topology_v._Incorrect_Topology.png', dpi=300)
+    plt.show()
+
+diff_tree_correct_v_incorrect(differencesU, results)
 ########################################################################################################################################################
 ### This graphs the difference between the best and second best tree topologys from IQTREE indicated by log-likelihood        ##########################
 ########################################################################################################################################################
@@ -1198,7 +1238,6 @@ def support_b4_af_filtering(results):
             label_added = True
     
     for x, res in zip(x_axis, results):
-        print(x, res)
         if res == 1:
             plt.bar(x, y_1[x-1], color='red', edgecolor='black', label='Failed Topologies')
     
@@ -1248,7 +1287,7 @@ def support_b4_af():
                         except IndexError as e:
                             after_support.append(0)
                             pass
-    x_axis = range(len(before_support))
+    x_axis = range(1,61)
     y_1 = [float(i) for i in before_support]
     y_2 = [float(i) for i in after_support]
 
@@ -1272,9 +1311,9 @@ def support_b4_af():
     plt.savefig(f'{saving_location}/SeaLion_correct_topology_b4_after_filtering.png', dpi=300)
     plt.show()
                            
-#support_b4_af()
+support_b4_af()
 
-#### THIS DOESNT WORK RIGHT!!! 
+#### THIS DOESNT WORK RIGHT!!! TRY AND EDIT IT FOR EACH INDIVIDUAL DATASET 
 #######################################################################
 ### This graphs the rejected trees as a function of the GC contents ###   
 #######################################################################
@@ -1305,26 +1344,39 @@ def reject_GC():
                                 accepted1 = parts[4]
                                 accepted.append(accepted1)
    
+    print(percent_rejected)
     average_percent = []
     gc_bins = []
-    for i in range(0, len(percent_rejected), 10):
+    for i in range(0, len(percent_rejected), 10): #THIS WOULD JUST PRINT THE AVERAGES, BUT INSTEAD WE'LL PRINT THE DATASETS ONE BY ONE
         group = percent_rejected[i:i+10]
         gc_bins.append(group)
         bin_average = sum(group)/len(group)
         average_percent.append(bin_average)
 
-    plt.figure(figsize=(10, 5))
-    plt.boxplot(gc_bins, tick_labels=[f"{47 + i * 4}%" for i in range(len(gc_bins))], patch_artist=True)
+    x_axis = range(1, 61)
+    y_axis = percent_rejected
+    plt.figure(figsize=(16, 6))
+    plt.bar(x_axis, y_axis, color='seagreen', edgecolor='black', label='Perecent of Topologies Rejected')
+
+
+    # Add dashed lines
+    for x in range(10, 60, 10):
+        plt.axvline(x=x - 0.5, color='blue', linestyle='--', linewidth=1)
+
+    #Add shaded backgrounds
+    for i in range(0, 60, 20):  # every other bin
+        plt.axvspan(i - 0.5, i + 9.5, color='gray', alpha=0.1)
 
     # Add labels, title, and legend
-    plt.xlabel('GC Content Group')
+    plt.xlabel('Dataset')
     plt.ylabel('% Rejected')
-    plt.title('Box-and-Whisker Plot of SeaLions % Rejected Topologies vs GC Content')
+    plt.title('% of SeaLions Rejected Topologies vs GC Content')
     plt.ylim(0, 1)
+    plt.xticks(ticks=list(x_axis), labels=[str(i) for i in x_axis], rotation=45)
     plt.grid(axis='y', linestyle='--', alpha=0.7)
 
     # Save and show
-    plt.savefig(f'{saving_location}/Box_Whisk_SeaLion_percent_rejected.png', dpi=300)
+    plt.savefig(f'{saving_location}/Bar_SeaLion_percent_rejected.png', dpi=300)
     plt.show()
 
 reject_GC()
