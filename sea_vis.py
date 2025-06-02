@@ -299,7 +299,7 @@ def IQ_quartet_supports():
 
     x = np.arange(1,61)
     # Assign colors based on results (0 = correct, 1 = incorrect)
-    colors = ['1f77b4' if result == 0 else 'blue' for result in results]
+    colors = ['orange' if result == 0 else 'blue' for result in results]
 
     plt.figure(figsize=(16, 6))
     plt.bar(x, y_labels, color=colors, align='center')
@@ -339,7 +339,7 @@ def IQ_quartet_supports():
 
     plt.close()
 
-#IQ_quartet_supports()
+IQ_quartet_supports()
 
 ###############################################################################################################################################################
 ###This function should take the UNFILTERED newick string from our SeaLion output file, cross check it with the original, then graphs the correct ones ########
@@ -489,7 +489,7 @@ def graph_correct_outputs2(newick_strings, correct_newick, tq_dist_path):
 
 correct_newick = "(((A,B),C),D);"
 tq_dist = '/home/s36jshem_hpc/sealion/runs'
-#csv_path1, clade_file_location, results_filtered, rejected_focused = graph_correct_outputs2(newick_strings, correct_newick, tq_dist)
+csv_path1, clade_file_location, results_filtered, rejected_focused = graph_correct_outputs2(newick_strings, correct_newick, tq_dist)
 
 #############################################################################################################################################
 ###This function should take the newick string from our tree file, cross check it with the original, then graphs the correct ones ###########
@@ -565,7 +565,7 @@ def graph_correct_outputsIQ(newick_corrected_path, correct_newick_string_user_da
     plt.show()
 
 corrected_newick_path = f'/home/s36jshem_hpc/sealion/runs/corrected_newick_output_2025-05-15_20-59-58_10000'
-#graph_correct_outputsIQ(corrected_newick_path, correct_newick, tq_dist)
+graph_correct_outputsIQ(corrected_newick_path, correct_newick, tq_dist)
 
 #################################################################
 ### This function just replots the IQTREE correct quartets  #####                                              
@@ -593,8 +593,8 @@ def IQ_correct(IQ_csv_location):
 
     return x1, y1
 
-#IQ_csv_location = f'/home/s36jshem_hpc/sealion/plots/clade_files_2025-05-15_20-59-58/2025-05-15_20-59-58.csv'
-#IQ_correct(IQ_csv_location)
+IQ_csv_location = f'/home/s36jshem_hpc/sealion/plots/clade_files_2025-05-15_20-59-58/IQTREE_Success_GC_Content.csv'
+IQ_correct(IQ_csv_location)
 
 ##################################################################################################################
 #### This function should overlay the correct vs incorrect vs rejected from Unfiltered SeaLion          ##########
@@ -605,11 +605,12 @@ def correct_incorrect_rejected_filtered(results_filtered, rejected_focused):
     correct_counts = [results_filtered[i:i + 10].count(0) for i in range(0, 60, 10)]
     correct_percent = [int(i)/10 for i in correct_counts]
     incorrect_counts = [results_filtered[i:i + 10].count(1) for i in range(0, 60, 10)]
-    incorrect_percent = [int(i)/10 for i in incorrect_counts]
     percent_counts = [(correct / (correct + incorrect)) if (correct + incorrect) > 0 else 0 for correct, incorrect in zip(correct_counts, incorrect_counts)]
     rejected_counts = [0 if i == 'unrejected' else 1 for i in rejected_focused]
     rejected_counts1 = [rejected_counts[i:i+10].count(1) for i in range(0,60,10)]
     rejected_percent= [int(i)/10 for i in rejected_counts1]
+    true_incorrect = [sum(1 for j in range(i, i+10) if results_filtered[j] == 1 and rejected_focused[j] == 'unrejected') for i in range(0, 60, 10)]
+    incorrect_percent = [int(i)/10 for i in true_incorrect]
 
     x = range(6)
     plt.figure(figsize=(10, 6))
@@ -628,7 +629,7 @@ def correct_incorrect_rejected_filtered(results_filtered, rejected_focused):
     plt.savefig((f'{saving_location}correct_incorrect_rejected_SeaLion.png'))
     plt.show()
 
-#correct_incorrect_rejected_filtered(results_filtered, rejected_focused)
+correct_incorrect_rejected_filtered(results_filtered, rejected_focused)
 
 ###################################################################################################################################
 #### This function should overlay the correct vs incorrect from Unfiltered SeaLion v the correct v incorrect from IQTREE ##########
@@ -660,8 +661,8 @@ def overlay_correct(csv_path, IQ_csv_location):
 
     return x1, y1, x2, y2
 
-#IQ_csv_location = f'/home/s36jshem_hpc/sealion/plots/clade_files_2025-05-15_20-59-58/IQTREE_Success_GC_Content.csv'
-#x1, y1, x2, y2 = overlay_correct(csv_path, IQ_csv_location)
+IQ_csv_location = f'/home/s36jshem_hpc/sealion/plots/clade_files_2025-05-15_20-59-58/IQTREE_Success_GC_Content.csv'
+x1, y1, x2, y2 = overlay_correct(csv_path, IQ_csv_location)
 
 ###################################################################################################################################
 #### This function should overlay the correct vs incorrect from Filtered SeaLion v the correct v incorrect from IQTREE ############
@@ -693,7 +694,7 @@ def overlay_correct2(csv_path1, IQ_csv_location):
 
     return x1, y1, x2, y2
 
-#x1, y1, x2, y2 = overlay_correct2(csv_path1, IQ_csv_location)
+x1, y1, x2, y2 = overlay_correct2(csv_path1, IQ_csv_location)
 
 #################################################################################################################################################
 ### This graphs the difference between the best and second best tree topologys from SeaLion ONLY POSITIVE BECAUSE THE DICT IS SORTED ############
@@ -824,7 +825,7 @@ def diff_graphs1(differencesU):
     plt.savefig(f'{saving_location}/SeaLion_Unfil_best_second_Δ.png', dpi=300)
     plt.show()
 
-#diff_graphs1(differencesU)
+diff_graphs1(differencesU)
 
 ############################################################################################
 ### Shows the delta when the tree is correct v. incorrect ONLY POSITIVE ####################
@@ -963,8 +964,8 @@ def diff_graphs2(IQ_likeli_loc):
 
     return diffs, indices
 
-#IQ_likeli_loc = f'/home/s36jshem_hpc/sealion/runs/iq_output_{clade_file_time}'
-#diffs, indices = diff_graphs2(IQ_likeli_loc)
+IQ_likeli_loc = f'/home/s36jshem_hpc/sealion/runs/iq_output_{clade_file_time}'
+diffs, indices = diff_graphs2(IQ_likeli_loc)
 
 ##########################################################################################
 ### Combined graph with two y-axes to compare filtered and unfiltered datasets ###########
@@ -1021,7 +1022,7 @@ def combined_graph(differences, differencesU):
     plt.show()
 
 # Call the function with your data
-#combined_graph(differences, differencesU)
+combined_graph(differences, differencesU)
 
 #################################################################################################
 ### Combined graph with two y-axes to compare filtered and unfiltered datasets Barchart #########           
@@ -1071,7 +1072,7 @@ def combined_graph_bar(differences, differencesU):
     plt.show()
 
 # Call the function with your data
-#combined_graph_bar(differences, differencesU)
+combined_graph_bar(differences, differencesU)
 
 ############################################################################################
 ### Combined graph with two y-axes to compare filtered and IQ_likelihood delta datasets  ###
@@ -1133,7 +1134,7 @@ def combined_graph_IQ(differences, diffs, indices, saving_location):
     plt.savefig(f'{saving_location}/Combined_Delta_SeaLion_LogLikelihood.png', dpi=300)
     plt.show()
 
-#combined_graph_IQ(differences, diffs, indices, saving_location)
+combined_graph_IQ(differences, diffs, indices, saving_location)
 
 ##############################################################################################
 ### Combined graph with two y-axes to compare unfiltered and IQ_likelihood delta datasets ####
@@ -1190,7 +1191,7 @@ def combined_graph_IQ_Unfil(differencesU, diffs, indices, saving_location):
     plt.savefig(f'{saving_location}/Combined_Support_Delta_Unfiltered_LogLikelihood.png', dpi=300)
     plt.show()
 
-#combined_graph_IQ_Unfil(differencesU, diffs, indices, saving_location)
+combined_graph_IQ_Unfil(differencesU, diffs, indices, saving_location)
 
 ################################################################################################################
 ### This should look at the difference between correct topology support before and after filtering Barchart ####        

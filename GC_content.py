@@ -64,7 +64,7 @@ def gc_content(seq):
     return (g + c) / total * 100 if total > 0 else 0
 
 # Path to the FASTA file
-path = f'/home/s36jshem_hpc/sealion/runs/ALI_output/fastaout_50.fa'
+path = f'/home/s36jshem_hpc/sealion/runs/iq_output_2025-06-02_14-19-34/fastaout_53.fa'
 print(f"\n📂 Processing: {path}")
 
 # Read and parse the FASTA file

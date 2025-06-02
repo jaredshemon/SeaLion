@@ -1,13 +1,14 @@
 ### Make sure to look up IQTREE AliSim documentation prior to use: http://www.iqtree.org/doc/iqtree-doc.pdf
-### If you'd like to completely edit the command yourself you can go into the code and find the function def AliSim():
+### If you'd like to completely edit the AliSim sequence generation command yourself you can go into the code and find the function def AliSim():
 ### The newick string must follow the AliSim guidelines
-### Make sure not to change any of the keys in this file
+### Make sure not to change any of the keys in this file (Model, Format, SEQ_LENGTH...)
 ### Num_Alignments == alignments per GC content you would like, not to the total number of alignments
 ### Newick must be on one line!!!!
 ### If you'd like to simulate varying GC contents for branchs you specify it in the form: ACTG, A1C1T1G1, A2C2T2G2... for each model, followed 
 ### by the min max and the step: 50 75 5 (one space in between)
 ### The invariant positions cannot be changed
-
+### The outgroup is set by YOU to help reroot the newick tree
+###3-00:00:00
 # Example Strategy:
 # GC Content Evolution Strategy:
 # - Clade A: Always 50% GC (F{0.25/0.25/0.25/0.25})
@@ -28,7 +29,7 @@ Format = fasta
 SEQ_LENGTH = 10000
 Out_File_Prefix = fastaout
 ACTG = 50 50 0 
-A1C1T1G1 = 50 75 5 
+A1C1T1G1 = 40 100 10 
 # Number of replicate alignments per GC setting
 Number_Alignments_per_GC = 10
 # Total number of alignments to simulate
@@ -37,4 +38,5 @@ Total_Alignments = 60
 Invariant_Positions = .1
 
 # Newick Template (GC in B & C will be updated per alignment set)
-Newick_Template = ((((A1:0.01,A2:0.01,A3:0.01,A4:0.01,A5:0.01,A6:0.01,A7:0.01,A8:0.01,A9:0.01,A10:0.01):.99[&model=F81+F{ACTG}+I{I1}],(B1:0.01,B2:0.01,B3:0.01,B4:0.01,B5:0.01,B6:0.01,B7:0.01,B8:0.01,B9:0.01,B10:0.01):.99[&model=F81+F{A1C1T1G1}+I{I1}]):0.05,(C1:0.01,C2:0.01,C3:0.01,C4:0.01,C5:0.01,C6:0.01,C7:0.01,C8:0.01,C9:0.01,C10:0.01):1.04[&model=F81+F{A1C1T1G1}+I{I1}]):0.05,(D1:0.01,D2:0.01,D3:0.01,D4:0.01,D5:0.01,D6:0.01,D7:0.01,D8:0.01,D9:0.01,D10:0.01):1.09[&model=F81+F{ACTG}+I{I1}]);
+Newick_Template = ((((A1:0.01,A2:0.01,A3:0.01,A4:0.01,A5:0.01,A6:0.01,A7:0.01,A8:0.01,A9:0.01,A10:0.01):.39[&model=F81+F{ACTG}+I{I1}],(B1:0.01,B2:0.01,B3:0.01,B4:0.01,B5:0.01,B6:0.01,B7:0.01,B8:0.01,B9:0.01,B10:0.01):.39[&model=F81+F{A1C1T1G1}+I{I1}]):0.05,(C1:0.01,C2:0.01,C3:0.01,C4:0.01,C5:0.01,C6:0.01,C7:0.01,C8:0.01,C9:0.01,C10:0.01):.44[&model=F81+F{A1C1T1G1}+I{I1}]):0.05,(D1:0.01,D2:0.01,D3:0.01,D4:0.01,D5:0.01,D6:0.01,D7:0.01,D8:0.01,D9:0.01,D10:0.01):.49[&model=F81+F{ACTG}+I{I1}]);
+outgroup = D 

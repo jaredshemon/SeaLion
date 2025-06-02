@@ -19,6 +19,16 @@ from numpy import savetxt
 import errno
 import multiprocessing
 from multiprocessing import pool
+import time
+
+
+def timed_log(func, description, *args, **kwargs):
+    start = time.perf_counter()
+    result = func(*args, **kwargs)
+    elapsed = time.perf_counter() - start
+    logging.info(f'{description} took {elapsed:.2f} seconds')
+    return result
+
 
 now_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
@@ -42,11 +52,6 @@ def handle_exception(exc_type, exc_value, exc_traceback):
 
 sys.excepthook = handle_exception
 
-import os
-import re
-import subprocess
-import shutil
-
 def run_AliSIM(user_txt_path, working_directory, ALI_output_directory):
     # Keyword mapping from config
     keywords = {
@@ -58,7 +63,8 @@ def run_AliSIM(user_txt_path, working_directory, ALI_output_directory):
         'Total_Alignments': ('total_aligns', 2),
         'ACTG': ('ACTG', 2),
         'A1C1T1G1': ('A1C1T1G1', 2),
-        'Invariant_Positions': ('invariant', 2)
+        'Invariant_Positions': ('invariant', 2),
+        'outgroup': ('outgroup', 2)
     }
 
     # Read user input config
@@ -77,16 +83,26 @@ def run_AliSIM(user_txt_path, working_directory, ALI_output_directory):
                     if line.startswith(key):
                         config[var_name] = line.split('=', 1)[-1].strip()
                         break
-
+    print(config)
+    logging.info(f"Here is the config: {config}")
     # Extract required values
     format = config.get('format')
+    logging.info(f"Here is the Format: {format}")
     seq_length = config.get('seq_length')
+    logging.info(f"Here is the Sequence Length: {seq_length}")
     out_file_prefix = config.get('out_file_prefix')
+    logging.info(f"Here is the Out File Prefix Length: {out_file_prefix}")
     num_aligns_per_gc = int(config.get('num_aligns_per_gc'))
+    logging.info(f"Here is the Number of Alignments per GC Content Length: {num_aligns_per_gc}")
     total_aligns = int(config.get('total_aligns'))
+    logging.info(f"Here is the Total Number of Alignments output: {total_aligns}")
     invariant = config.get('invariant')
+    logging.info(f"Here is the pinv: {invariant}")
     newick_template = config.get('newick_template')
-    
+    logging.info(f"Here is the Newick: {newick_template}")
+    outgroup = config.get('outgroup')
+    logging.info(f"Here is the outgroup: {outgroup}")
+
     def parse_gc_vals(gc_str):
         return list(map(int, gc_str.split()))
 
@@ -150,6 +166,8 @@ def run_AliSIM(user_txt_path, working_directory, ALI_output_directory):
                 shutil.move(src_path, dst_path)
 
     print(f"Generated {total_aligns} Newick trees and corresponding output files.")
+
+    return outgroup
 
 def rename_seq_fasta(ALI_output_directory, IQTREE_path, iq_model):
      #####################################################################################
@@ -260,7 +278,7 @@ def make_clade_files(fasta_path, clade_path, sealion_directory):
         
     return "Sequences extracted and saved! "
 
-def shrink_newick(newick_string_location, newick_corrected_path, clade_output_path, reroot_directory): 
+def shrink_newick(newick_string_location, newick_corrected_path, clade_output_path, reroot_directory, outgroup): 
     ################################################################################################################################################################
     ##### This function should shrink the newick string down without the branch lengths, then it will run it through juliannes python script 'ESOFT' then it #######
     ##### will run it through reroot, then write the corrected newick strings into a new file                   ####################################################
@@ -273,9 +291,8 @@ def shrink_newick(newick_string_location, newick_corrected_path, clade_output_pa
     for file in full_path:
         with open(file, 'r') as f:
             for line in f:
-                line1 = re.sub(r':-?\d+(?:\.\d+)?(?:[eE][-+]?\d+)?', '', line)
+                line1 = re.sub(r":\d+\.\d+", "", line)
                 newick_strings_files[file] = line1.strip()
-    print(newick_strings_files)
 
     #### This below replaces the fasta file with the corresponding clade file, so we can run the subprocess command below    
     clade_def = [f for f in os.listdir(clade_output_path) if f.startswith('clade_def')]
@@ -303,7 +320,7 @@ def shrink_newick(newick_string_location, newick_corrected_path, clade_output_pa
         print(command)
         esoft_run = subprocess.run(command, cwd = reroot_directory, capture_output = True, check=True, text = True, shell = True)
         output = esoft_run.stdout.strip()
-        reroot_command = f'./reroot.o "{output}" D {k}'
+        reroot_command = f'./reroot.o "{output}" {outgroup} {k}'
         print(reroot_command)
         reroot_run =  subprocess.run(reroot_command, cwd = reroot_directory, capture_output = True, check=True, text = True, shell = True)
         reroot_output = reroot_run.stdout.strip()
@@ -404,13 +421,14 @@ def graph_correct_outputs(newick_corrected_path, correct_newick_string_user_data
 
     plt.xlabel('GC Content')
     plt.ylabel('% Tree Success')
-    plt.title('Tree_Success by GC Content (IQ-TREE)')
+    plt.title('Tree Success by GC Content (IQ-TREE)')
     plt.xticks(x, gc_content_labels)
     #plt.legend(handles = [custom_legend], loc = 'upper right', fontsize = 'x-small')
 
     
     plt.savefig(os.path.join(graph_path, f'IQTREE_SUCCESS.png'), format='png')
     plt.show()
+
 
 def process_task(args):
     fas_fn, txt_fn, sealion_runs_dst, perl_script, sealion_container_location, clade_output_path = args
@@ -497,13 +515,13 @@ def main():
     sealion_container_location = '/home/s36jshem_hpc/sealion/sealion_script/SeaLion_container_dir'
     sealion_runs_dst = f'{clade_output_path}/sealion_runs'
     
-    run_AliSIM(user_txt_path, working_directory, ALI_output_directory)
-    rename_seq_fasta(ALI_output_directory, iqtree_output_path, iq_model)
+    outgroup = timed_log(run_AliSIM, 'ALISIM', user_txt_path, working_directory, ALI_output_directory)
+    timed_log(rename_seq_fasta, 'IQTREE rename', ALI_output_directory, iqtree_output_path, iq_model)
     move_tree_files(iqtree_output_path, newick_treefile_output_path)
     make_clade_files(fasta_path, clade_output_path, sealion_final_directory)
-    shrink_newick(newick_treefile_output_path, newick_corrected_path, clade_output_path, reroot_directory)
+    shrink_newick(newick_treefile_output_path, newick_corrected_path, clade_output_path, reroot_directory, outgroup)
     graph_correct_outputs(newick_corrected_path, correct_newick_string_user_data, tq_dist_path, graph_path, working_directory)
-    run_sea(sealion_container_location, clade_output_path, sealion_runs_dst)
+    #run_sea(sealion_container_location, clade_output_path, sealion_runs_dst)
 
 if __name__ == "__main__":
     main()   
