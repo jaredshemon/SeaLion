@@ -12,8 +12,9 @@ from matplotlib.lines import Line2D
 import matplotlib.lines as mlines
 import gzip
 import matplotlib.patches as mpatches
-
-
+import statistics
+from collections import defaultdict
+import csv
 
 
 now = datetime.now()
@@ -122,9 +123,9 @@ def diff_visualizations():
         plt.axvspan(i - 0.5, i + 9.5, color='gray', alpha=0.1)
 
     #GC content annotations
-    gc_labels = [47, 51, 55, 59, 63, 67]
+    gc_labels = [1, 2, 3, 4, 5, 6]
     for i, gc in enumerate(gc_labels):
-        plt.text(i * 10 + 5, .99, f'{gc}%', ha='center', va='top', fontsize=9, transform=plt.gca().transData)
+        plt.text(i * 10 + 5, .99, f'{gc}', ha='center', va='top', fontsize=9, transform=plt.gca().transData)
 
     # Add legend
     legend_handles = [plt.Line2D([0], [0], color=color_map[topo], lw=4, label=topo) for topo in color_map if topo != "N/A"]
@@ -202,9 +203,9 @@ def unfiltered_quartet_supports(unfiltered_topology_supports):
         plt.axvspan(i - 0.5, i + 9.5, color='gray', alpha=0.1)
 
     #GC content annotations
-    gc_labels = [47, 51, 55, 59, 63, 67]
+    gc_labels = [1, 2, 3, 4, 5, 6]
     for i, gc in enumerate(gc_labels):
-        plt.text(i * 10 + 5, .99, f'{gc}%', ha='center', va='top', fontsize=9, transform=plt.gca().transData)
+        plt.text(i * 10 + 5, .99, f'{gc}', ha='center', va='top', fontsize=9, transform=plt.gca().transData)
 
     # Add legend
     legend_handles = [plt.Line2D([0], [0], color=color_map[topo], lw=4, label=topo) for topo in color_map]
@@ -222,7 +223,7 @@ def unfiltered_quartet_supports(unfiltered_topology_supports):
     if not os.path.exists(saving_location):
         os.makedirs(saving_location)
 
-    plt.savefig(f"{saving_location}/Best_Supported_Unfiltered_Topology", dpi=300)
+    plt.savefig(f"{saving_location}/Best_Supported_Unfiltered_Topology.svg", dpi=300)
 
     plt.close()
 
@@ -293,16 +294,16 @@ def IQ_quartet_supports():
         result = subprocess.run(command, cwd=newick_path, shell=True, capture_output = True, text = True)
         output = result.stdout.strip()
         results.append(int(output))
-    
-    sorted_data = sorted(zip(y_labels, x_labels))
-    x_labels_sorted, y_values_sorted = zip(*sorted_data)
-
+  
+    sorted_data = dict(zip(y_labels, x_labels))
+    sorted_data = dict(sorted(sorted_data.items(), key=lambda item: item[1]))
+    #x_labels_sorted, y_values_sorted = zip(*sorted_data)
     x = np.arange(1,61)
     # Assign colors based on results (0 = correct, 1 = incorrect)
     colors = ['orange' if result == 0 else 'blue' for result in results]
 
     plt.figure(figsize=(16, 6))
-    plt.bar(x, y_labels, color=colors, align='center')
+    plt.bar(sorted_data.values(), sorted_data.keys(), color=colors, align='center')
 
     correct_newick = set(newick_strings[i] for i, result in enumerate(results) if result == 0)
     incorrect_newick = set(newick_strings[i] for i, result in enumerate(results) if result == 1)
@@ -322,9 +323,9 @@ def IQ_quartet_supports():
         plt.axvspan(i - 0.5, i + 9.5, color='gray', alpha=0.1)
 
     #GC content annotations
-    gc_labels = [47, 51, 55, 59, 63, 67]
+    gc_labels = [1, 2, 3, 4, 5, 6]
     for i, gc in enumerate(gc_labels):
-        plt.text(i * 10 + 5, -77900, f'{gc}%', ha='center', va='top', fontsize=9, transform=plt.gca().transData)
+        plt.text(i * 10 + 5, -77900, f'{gc}', ha='center', va='top', fontsize=9, transform=plt.gca().transData)
 
 
     plt.xlabel("Dataset Number")
@@ -335,7 +336,7 @@ def IQ_quartet_supports():
     plt.tight_layout()
     plt.show()
 
-    plt.savefig(f"{saving_location}/IQ_Topology_barchart", dpi=300)
+    plt.savefig(f"{saving_location}/IQ_Topology_barchart.svg", dpi=300)
 
     plt.close()
 
@@ -347,7 +348,6 @@ IQ_quartet_supports()
 ###############################################################################################################################################################
 def graph_correct_outputs(newick_strings1, correct_newick, tq_dist_path):
 
-    
     def stripped_newick(string):
         return re.sub(r'([0-9.e-]+|#[A-Za-z0-9_]+)', '', string)
 
@@ -356,7 +356,6 @@ def graph_correct_outputs(newick_strings1, correct_newick, tq_dist_path):
     user_newick_path = os.path.join(newick_path, 'newickfile_user.txt' )
     results = []
     
-
     for i in newick_strings1: #Newick strings contains the unfiltered score newick strings, and comes from the diff_visualizations() function
         with open(newick_file_path, 'w') as f:
             f.write(stripped_newick(i))
@@ -370,11 +369,13 @@ def graph_correct_outputs(newick_strings1, correct_newick, tq_dist_path):
         results.append(int(output))
 
     # Preparing the data for graphing
-    gc_contents = [47 + (i // 10) * 4 for i in range(60)]
-    gc_content_labels = [f"{47 + i * 4}%" for i in range(6)]
+    #gc_contents = [47 + (i // 10) * 4 for i in range(60)]
+    #gc_content_labels = [f"{47 + i * 4}%" for i in range(6)]#This was for the original graphing, it becomes useful if the GC contents become standardized- replace 47 for starting value and 4 for the step of increase
+    gc_contents = [1 + (i // 10) * 1 for i in range(60)]
+    gc_content_labels = [f"{1 + i * 1}" for i in range(6)]
     correct_counts = [results[i:i + 10].count(0) for i in range(0, 60, 10)]
     incorrect_counts = [results[i:i + 10].count(1) for i in range(0, 60, 10)]
-    percent_counts = [(correct / (correct + incorrect)) if (correct + incorrect) > 0 else 0 for correct, incorrect in zip(correct_counts, incorrect_counts)]
+    percent_counts = [(correct / (correct + incorrect)*100) if (correct + incorrect) > 0 else 0 for correct, incorrect in zip(correct_counts, incorrect_counts)]
     
     # Plotting the results
     x = range(6)
@@ -398,14 +399,14 @@ def graph_correct_outputs(newick_strings1, correct_newick, tq_dist_path):
     plt.figure(figsize=(10, 6))
     plt.plot(x, y, linestyle='--', marker='o', color='green', label='Data Points')
 
-    plt.xlabel('GC Content')
+    plt.xlabel('GC Bin')
     plt.ylabel('% Tree Success')
     plt.title('Tree Success by GC Content (SeaLion)')
     plt.xticks(x, gc_content_labels)
     plt.legend(handles=[custom_legend], loc='upper right', fontsize='x-small')
 
     
-    plt.savefig((f'{saving_location}/Tree_Success_GC_Content_SeaLion.png'))
+    plt.savefig((f'{saving_location}/Tree_Success_GC_Content_SeaLion.svg'))
     plt.show()
 
 
@@ -448,10 +449,11 @@ def graph_correct_outputs2(newick_strings, correct_newick, tq_dist_path):
 
     # Preparing the data for graphing
     gc_contents = [47 + (i // 10) * 4 for i in range(60)]
-    gc_content_labels = [f"{47 + i * 4}%" for i in range(6)]
+    #gc_content_labels = [f"{47 + i * 4}%" for i in range(6)] #This was for the original graphing, it becomes useful if the GC contents become standardized- replace 47 for starting value and 4 for the step of increase
+    gc_content_labels = [f"{1 + i * 1}" for i in range(6)]
     correct_counts = [results_filtered[i:i + 10].count(0) for i in range(0, 60, 10)]
     incorrect_counts = [results_filtered[i:i + 10].count(1) for i in range(0, 60, 10)]
-    percent_counts = [(correct / (correct + incorrect)) if (correct + incorrect) > 0 else 0 for correct, incorrect in zip(correct_counts, incorrect_counts)]
+    percent_counts = [(correct / (correct + incorrect)*100) if (correct + incorrect) > 0 else 0 for correct, incorrect in zip(correct_counts, incorrect_counts)]
     # Plotting the results
     x = range(6)
     y = percent_counts
@@ -474,14 +476,14 @@ def graph_correct_outputs2(newick_strings, correct_newick, tq_dist_path):
     plt.figure(figsize=(10, 6))
     plt.plot(x, y, linestyle='--', marker='o', color='green', label='Data Points')
 
-    plt.xlabel('GC Content')
+    plt.xlabel('GC Bin')
     plt.ylabel('% Tree Success')
     plt.title('Tree Success by GC Content (SeaLion)')
     plt.xticks(x, gc_content_labels)
     plt.legend(handles=[custom_legend], loc='upper right', fontsize='x-small')
 
     
-    plt.savefig((f'{saving_location}/RISKDIST_Tree_Success_GC_Content_SeaLion.png'))
+    plt.savefig((f'{saving_location}/RISKDIST_Tree_Success_GC_Content_SeaLion.svg'))
     plt.show()
 
 
@@ -530,11 +532,12 @@ def graph_correct_outputsIQ(newick_corrected_path, correct_newick_string_user_da
     
  
     # Preparing the data for graphing
-    gc_contents = [47 + (i // 10) * 4 for i in range(60)]
-    gc_content_labels = [f"{47 + i * 4}%" for i in range(6)]
+    #gc_contents = [47 + (i // 10) * 4 for i in range(60)]
+    #gc_content_labels = [f"{47 + i * 4}%" for i in range(6)] #This was for the original graphing, it becomes useful if the GC contents become standardized- replace 47 for starting value and 4 for the step of increase
+    gc_content_labels = [f"{1 + i * 1}" for i in range(6)]
     correct_counts = [results[i:i + 10].count(0) for i in range(0, 60, 10)]
     incorrect_counts = [results[i:i + 10].count(1) for i in range(0, 60, 10)]
-    percent_counts = [(correct / (correct + incorrect)) if (correct + incorrect) > 0 else 0 for correct, incorrect in zip(correct_counts, incorrect_counts)]
+    percent_counts = [(correct / (correct + incorrect)*100) if (correct + incorrect) > 0 else 0 for correct, incorrect in zip(correct_counts, incorrect_counts)]
 
     
     # Plotting the results
@@ -555,13 +558,13 @@ def graph_correct_outputsIQ(newick_corrected_path, correct_newick_string_user_da
 
     custom_legend = Line2D([0], [0], linestyle='None', marker='o', color='green', label='IQTREE Correct')
 
-    plt.xlabel('GC Content')
+    plt.xlabel('GC Bin')
     plt.ylabel('% Tree Success')
     plt.title('Tree Success by GC Content (IQ-TREE)')
     plt.xticks(x, gc_content_labels)
     plt.legend(handles=[custom_legend], loc='upper right', fontsize='x-small')
     
-    plt.savefig(f'{saving_location}/IQTREE_Success_GC_Content.png', format='png')
+    plt.savefig(f'{saving_location}/IQTREE_Success_GC_Content.svg', format='svg')
     plt.show()
 
 corrected_newick_path = f'/home/s36jshem_hpc/sealion/runs/corrected_newick_output_2025-05-15_20-59-58_10000'
@@ -579,16 +582,16 @@ def IQ_correct(IQ_csv_location):
     plt.figure(figsize=(10, 5))
     plt.plot(x1, y1, marker='o', linestyle='--', color='blue', label='ML(IQTREE)')
 
-    plt.xlabel('GC Content Group')
+    plt.xlabel('GC Bin')
     plt.ylabel('% Tree Success')
     plt.title('IQTree Success by GC Content')
-    plt.xticks(ticks=range(6), labels=[f"{47 + i * 4}%" for i in range(6)])
-    plt.ylim(0, 1)
+    plt.xticks(ticks=range(6), labels=[f"{1 + i * 1}" for i in range(6)])#Change 1 and 1 if you have consistent GC content, you can stepwise increase it here
+    plt.ylim(0, 100)
     plt.legend()
     plt.tight_layout()
 
     # Save and show
-    plt.savefig(f'{saving_location}/Tree_Success_GC_Content_IQTREE.png', dpi=300)
+    plt.savefig(f'{saving_location}/Tree_Success_GC_Content_IQTREE.svg', dpi=300)
     plt.show()
 
     return x1, y1
@@ -601,7 +604,8 @@ IQ_correct(IQ_csv_location)
 ##################################################################################################################
 def correct_incorrect_rejected_filtered(results_filtered, rejected_focused):
     gc_contents = [47 + (i // 10) * 4 for i in range(60)]
-    gc_content_labels = [f"{47 + i * 4}%" for i in range(6)]
+    #gc_content_labels = [f"{47 + i * 4}%" for i in range(6)]
+    gc_content_labels = [f"{1 + i * 1}" for i in range(6)]
     correct_counts = [results_filtered[i:i + 10].count(0) for i in range(0, 60, 10)]
     correct_percent = [int(i)/10 for i in correct_counts]
     incorrect_counts = [results_filtered[i:i + 10].count(1) for i in range(0, 60, 10)]
@@ -618,7 +622,7 @@ def correct_incorrect_rejected_filtered(results_filtered, rejected_focused):
     plt.plot(x, incorrect_percent, linestyle='--', marker='o', color='darkgoldenrod', label='Incorrect Topologies')
     plt.plot(x, rejected_percent, linestyle='--', marker='o', color='darkviolet', label='Rejected Topologies')
 
-    plt.xlabel('GC Content')
+    plt.xlabel('GC Bin')
     plt.ylabel('% Tree Success')
     plt.ylim(0,1)
     plt.title('Tree Success, Rejection, and Failure (SeaLion)')
@@ -626,7 +630,7 @@ def correct_incorrect_rejected_filtered(results_filtered, rejected_focused):
     plt.legend()
 
     
-    plt.savefig((f'{saving_location}correct_incorrect_rejected_SeaLion.png'))
+    plt.savefig((f'{saving_location}correct_incorrect_rejected_SeaLion.svg'))
     plt.show()
 
 correct_incorrect_rejected_filtered(results_filtered, rejected_focused)
@@ -647,16 +651,16 @@ def overlay_correct(csv_path, IQ_csv_location):
     plt.plot(x1, y1, marker='o', linestyle='--', color='blue', label='ML(IQTREE)')
     plt.plot(x2, y2, marker='o', linestyle='--', color='green', label='SeaLion')
 
-    plt.xlabel('GC Content Group')
+    plt.xlabel('GC Bin')
     plt.ylabel('% Correct Topologies')
     plt.title('Overlay of Correct Topology Matches by GC Content (Unfiltered)')
-    plt.xticks(ticks=range(6), labels=[f"{47 + i * 4}%" for i in range(6)])
-    plt.ylim(0, 1)
+    plt.xticks(ticks=range(6), labels=[f"{1 + i * 1}" for i in range(6)])
+    plt.ylim(0, 100)
     plt.legend()
     plt.tight_layout()
 
     # Save and show
-    plt.savefig(f'{saving_location}/Unfiltered_Overlay_Tree_Success.png', dpi=300)
+    plt.savefig(f'{saving_location}/Unfiltered_Overlay_Tree_Success.svg', dpi=300)
     plt.show()
 
     return x1, y1, x2, y2
@@ -680,16 +684,16 @@ def overlay_correct2(csv_path1, IQ_csv_location):
     plt.plot(x1, y1, marker='o', linestyle='--', color='blue', label='ML(IQTREE)')
     plt.plot(x2, y2, marker='o', linestyle='--', color='green', label='SeaLion')
 
-    plt.xlabel('GC Content Group')
+    plt.xlabel('GC Bin')
     plt.ylabel('% Correct Topologies')
     plt.title('Overlay of Correct Topology Matches by GC Content (RISK+DIST)')
-    plt.xticks(ticks=range(6), labels=[f"{47 + i * 4}%" for i in range(6)])
-    plt.ylim(0, 1)
+    plt.xticks(ticks=range(6), labels=[f"{1 + i * 1}" for i in range(6)])
+    plt.ylim(0, 100)
     plt.legend()
     plt.tight_layout()
 
     # Save and show
-    plt.savefig(f'{saving_location}/Overlay_Tree_Success.png', dpi=300)
+    plt.savefig(f'{saving_location}/Overlay_Tree_Success.svg', dpi=300)
     plt.show()
 
     return x1, y1, x2, y2
@@ -769,9 +773,9 @@ def diff_graphs(tsv_location):
         plt.axvspan(i - 0.5, i + 9.5, color='gray', alpha=0.1)
 
     #GC content annotations
-    gc_labels = [47, 51, 55, 59, 63, 67]
+    gc_labels = [1, 2, 3, 4, 5, 6]
     for i, gc in enumerate(gc_labels):
-        plt.text(i * 10 + 5, .99, f'{gc}%', ha='center', va='top', fontsize=9, transform=plt.gca().transData)
+        plt.text(i * 10 + 5, .99, f'{gc}', ha='center', va='top', fontsize=9, transform=plt.gca().transData)
 
     plt.xlabel('Dataset')
     plt.ylabel('Support Δ')
@@ -783,7 +787,7 @@ def diff_graphs(tsv_location):
     plt.tight_layout()
 
     # Save and show
-    plt.savefig(f'{saving_location}/SeaLion_best_second_Δ.png', dpi=300)
+    plt.savefig(f'{saving_location}/SeaLion_best_second_Δ.svg', dpi=300)
     plt.show()
 
     return differences, differencesU
@@ -808,9 +812,9 @@ def diff_graphs1(differencesU):
         plt.axvspan(i - 0.5, i + 9.5, color='gray', alpha=0.1)
 
     #GC content annotations
-    gc_labels = [47, 51, 55, 59, 63, 67]
+    gc_labels = [1, 2, 3, 4, 5, 6]
     for i, gc in enumerate(gc_labels):
-        plt.text(i * 10 + 5, .99, f'{gc}%', ha='center', va='top', fontsize=9, transform=plt.gca().transData)
+        plt.text(i * 10 + 5, .99, f'{gc}', ha='center', va='top', fontsize=9, transform=plt.gca().transData)
 
     plt.xlabel('Dataset')
     plt.ylabel('Support Δ')
@@ -822,7 +826,7 @@ def diff_graphs1(differencesU):
     plt.tight_layout()
 
     # Save and show
-    plt.savefig(f'{saving_location}/SeaLion_Unfil_best_second_Δ.png', dpi=300)
+    plt.savefig(f'{saving_location}/SeaLion_Unfil_best_second_Δ.svg', dpi=300)
     plt.show()
 
 diff_graphs1(differencesU)
@@ -871,9 +875,9 @@ def diff_tree_correct_v_incorrect(differencesU, results):
         plt.axvspan(i - 0.5, i + 9.5, color='gray', alpha=0.1)
 
     #GC content annotations
-    gc_labels = [47, 51, 55, 59, 63, 67]
+    gc_labels = [1, 2, 3, 4, 5, 6]
     for i, gc in enumerate(gc_labels):
-        plt.text(i * 10 + 5, .95, f'{gc}%', ha='center', va='top', fontsize=9, transform=plt.gca().transData)
+        plt.text(i * 10 + 5, .95, f'{gc}', ha='center', va='top', fontsize=9, transform=plt.gca().transData)
     
     threshold = .2
     plt.axhline(y=threshold, color='lightcoral', linestyle=':', linewidth=1)
@@ -891,7 +895,7 @@ def diff_tree_correct_v_incorrect(differencesU, results):
     plt.tight_layout()
 
     # Save and show
-    plt.savefig(f'{saving_location}/Δ_Correct_Topology_v._Incorrect_Topology.png', dpi=300)
+    plt.savefig(f'{saving_location}/Δ_Correct_Topology_v._Incorrect_Topology.svg', dpi=300)
     plt.show()
 
 diff_tree_correct_v_incorrect(differencesU, results)
@@ -942,9 +946,9 @@ def diff_graphs2(IQ_likeli_loc):
         plt.axvspan(i - 0.5, i + 9.5, color='gray', alpha=0.1)
 
     #GC content annotations
-    gc_labels = [47, 51, 55, 59, 63, 67]
+    gc_labels = [1, 2, 3, 4, 5, 6]
     for i, gc in enumerate(gc_labels):
-        plt.text(i * 10 + 5, 1e-4, f'{gc}%', ha='center', va='top', fontsize=9, transform=plt.gca().transData)
+        plt.text(i * 10 + 5, 1e-4, f'{gc}', ha='center', va='top', fontsize=9, transform=plt.gca().transData)
     
     # Highlight significant differences
     threshold = 1e-1
@@ -959,7 +963,7 @@ def diff_graphs2(IQ_likeli_loc):
     plt.ylim(bottom=1e-5, top=max(diffs)*1.5)
     plt.legend()
     #plt.tight_layout()
-    plt.savefig(f'{saving_location}/IQ_best_second_Δ.png', dpi=300)
+    plt.savefig(f'{saving_location}/IQ_best_second_Δ.svg', dpi=300)
     plt.show()
 
     return diffs, indices
@@ -997,9 +1001,9 @@ def combined_graph(differences, differencesU):
         ax1.axvspan(i - 0.5, i + 9.5, color='gray', alpha=0.1)
 
     # GC content annotations
-    gc_labels = [47, 51, 55, 59, 63, 67]
+    gc_labels = [1, 2, 3, 4, 5, 6]
     for i, gc in enumerate(gc_labels):
-        ax1.text(i * 10 + 5, 0.98, f'{gc}%', ha='center', va='top', fontsize=9, transform=ax1.transData)
+        ax1.text(i * 10 + 5, 0.98, f'{gc}', ha='center', va='top', fontsize=9, transform=ax1.transData)
 
     # Second dataset (unfiltered data) on the right y-axis
     ax2 = ax1.twinx()
@@ -1018,7 +1022,7 @@ def combined_graph(differences, differencesU):
     plt.tight_layout()
 
     # Save and show
-    plt.savefig(f'{saving_location}/Combined_SeaLion_Delta_Support.png', dpi=300)
+    plt.savefig(f'{saving_location}/Combined_SeaLion_Delta_Support.svg', dpi=300)
     plt.show()
 
 # Call the function with your data
@@ -1049,9 +1053,9 @@ def combined_graph_bar(differences, differencesU):
     for i in range(1, 60, 20):  # every other bin
         plt.axvspan(i - 0.5, i + 9.5, color='gray', alpha=0.1)
 
-    gc_labels = [47, 51, 55, 59, 63, 67]
+    gc_labels = [1, 2, 3, 4, 5, 6]
     for i, gc in enumerate(gc_labels):
-        plt.text(i * 10 + 5, .98, f'{gc}%', ha='center', va='top', fontsize=9, transform=plt.gca().transData)
+        plt.text(i * 10 + 5, .98, f'{gc}', ha='center', va='top', fontsize=9, transform=plt.gca().transData)
 
     # Plot the unfiltered dataset (differencesU) as bars on the right y-axis
     ax2 = ax1.twinx()
@@ -1068,7 +1072,7 @@ def combined_graph_bar(differences, differencesU):
     plt.tight_layout()
 
     # Save and show
-    plt.savefig(f'{saving_location}/Barchart_Combined_SeaLion_Delta_Support.png', dpi=300)
+    plt.savefig(f'{saving_location}/Barchart_Combined_SeaLion_Delta_Support.svg', dpi=300)
     plt.show()
 
 # Call the function with your data
@@ -1080,7 +1084,7 @@ combined_graph_bar(differences, differencesU)
 def combined_graph_IQ(differences, diffs, indices, saving_location):
 
     y_axis = range(1, 61)  # Shared x-axis for both datasets
-    gc_labels = [47, 51, 55, 59, 63, 67]
+    gc_labels = [1, 2, 3, 4, 5, 6]
 
     # Create the figure and axis
     fig, ax1 = plt.subplots(figsize=(16, 6))
@@ -1131,7 +1135,7 @@ def combined_graph_IQ(differences, diffs, indices, saving_location):
     plt.tight_layout()
 
     # Save and show
-    plt.savefig(f'{saving_location}/Combined_Delta_SeaLion_LogLikelihood.png', dpi=300)
+    plt.savefig(f'{saving_location}/Combined_Delta_SeaLion_LogLikelihood.svg', dpi=300)
     plt.show()
 
 combined_graph_IQ(differences, diffs, indices, saving_location)
@@ -1142,7 +1146,7 @@ combined_graph_IQ(differences, diffs, indices, saving_location)
 def combined_graph_IQ_Unfil(differencesU, diffs, indices, saving_location):
 
     y_axis = range(1, 61)  # Shared x-axis for both datasets
-    gc_labels = [47, 51, 55, 59, 63, 67]
+    gc_labels = [1, 2, 3, 4, 5, 6]
 
     # Create the figure and axis
     fig, ax1 = plt.subplots(figsize=(16, 6))
@@ -1188,7 +1192,7 @@ def combined_graph_IQ_Unfil(differencesU, diffs, indices, saving_location):
     plt.tight_layout()
 
     # Save and show
-    plt.savefig(f'{saving_location}/Combined_Support_Delta_Unfiltered_LogLikelihood.png', dpi=300)
+    plt.savefig(f'{saving_location}/Combined_Support_Delta_Unfiltered_LogLikelihood.svg', dpi=300)
     plt.show()
 
 combined_graph_IQ_Unfil(differencesU, diffs, indices, saving_location)
@@ -1232,6 +1236,17 @@ def support_b4_af_filtering(results):
     plt.bar(x_axis, y_1, color=colors, edgecolor='black', label='Difference before v. after filtering')
     label_added = False  # Flag to add the label only once
 
+    for x in range(10, 60, 10):
+        plt.axvline(x=x - 0.5, color='red', linestyle='--', linewidth=1)
+
+    #Add shaded backgrounds
+    for i in range(0, 60, 20):  # every other bin
+        plt.axvspan(i - 0.5, i + 9.5, color='gray', alpha=0.1)
+
+    gc_labels = [1, 2, 3, 4, 5, 6]
+    for i, gc in enumerate(gc_labels):
+        plt.text(i * 10 + 5, .11, f'{gc}', ha='center', va='top', fontsize=9, transform=plt.gca().transData)
+
 
     for x, rej in zip(x_axis, rejected):
         if rej == 1:
@@ -1257,7 +1272,7 @@ def support_b4_af_filtering(results):
     plt.tight_layout()
 
     # Save and show
-    plt.savefig(f'{saving_location}/Correct_Topology_b4_After_Filtering_Bar.png', dpi=300)
+    plt.savefig(f'{saving_location}/Correct_Topology_b4_After_Filtering_Bar.svg', dpi=300)
     plt.show()
 
 support_b4_af_filtering(results)
@@ -1309,7 +1324,7 @@ def support_b4_af():
     plt.tight_layout()
 
     # Save and show
-    plt.savefig(f'{saving_location}/SeaLion_correct_topology_b4_after_filtering.png', dpi=300)
+    plt.savefig(f'{saving_location}/SeaLion_correct_topology_b4_after_filtering.svg', dpi=300)
     plt.show()
                            
 support_b4_af()
@@ -1345,7 +1360,6 @@ def reject_GC():
                                 accepted1 = parts[4]
                                 accepted.append(accepted1)
    
-    print(percent_rejected)
     average_percent = []
     gc_bins = []
     for i in range(0, len(percent_rejected), 10): #THIS WOULD JUST PRINT THE AVERAGES, BUT INSTEAD WE'LL PRINT THE DATASETS ONE BY ONE
@@ -1382,10 +1396,201 @@ def reject_GC():
 
 reject_GC()
 
+def gc_graphs(path):
+    
+    def gc_content(seq):
+        gc_count = seq.count('G') + seq.count('C')
+        return (gc_count / len(seq)) * 100 if seq else 0
+
+    def get_medians_by_prefix(gc_list, prefixes):
+        medians = {}
+        for prefix in prefixes:
+            values = [
+                float(val[1])
+                for val in gc_list.values()
+                if val[0].startswith(prefix)
+            ]
+            if values:
+                medians[prefix] = statistics.median(values)
+        return medians
+
+    def extract_number(filename):
+        match = re.search(r'fastaout(\d+)', filename)
+        return int(match.group(1)) if match else 0
+
+    # Containers
+    file_diff = {}
+    file_bal = {}
+    file_inc = {}
+    clade_gc = {k: {} for k in 'ABCD'}
+
+    
+    prefixes = ['A', 'B', 'C', 'D']
+
+    for fname in os.listdir(path):
+        if fname.endswith('fas'):
+            file_path = os.path.join(path, fname)
+            with open(file_path, 'r') as f:
+                headers, sequences, current_seq = [], [], ''
+                for line in f:
+                    line = line.strip()
+                    if line.startswith(">"):
+                        if current_seq:
+                            sequences.append(current_seq)
+                            current_seq = ''
+                        headers.append(line[1:])
+                    else:
+                        current_seq += line
+                if current_seq:
+                    sequences.append(current_seq)
+
+            gc_list = {}
+            for header, seq in zip(headers, sequences):
+                gc = gc_content(seq)
+                gc_list[header] = (header, f"{gc:.2f}", len(seq))
+
+            medians = get_medians_by_prefix(gc_list, prefixes)
+            filename_key = re.search(r'fastaout\d+\.fas', fname).group()
+
+            if all(prefix in medians for prefix in 'ABCD'):
+                A, B, C, D = [round(medians[p], 3) for p in 'ABCD']
+                GCinc = round((B + C) / 2, 3)
+                GCbal = round((A + D) / 2, 3)
+                GCdiff = round((GCinc - GCbal), 3)
+
+                file_diff[filename_key] = GCdiff
+                file_bal[filename_key] = GCbal
+                file_inc[filename_key] = GCinc
+                clade_gc['A'][filename_key] = A
+                clade_gc['B'][filename_key] = B
+                clade_gc['C'][filename_key] = C
+                clade_gc['D'][filename_key] = D
+                
+    # Sorting helper
+    def sort_dict_by_filename(d):
+        return dict(sorted(d.items(), key=lambda x: extract_number(x[0])))
+
+    # Sorted outputs
+    file_diff_sorted_file = sort_dict_by_filename(file_diff)
+    file_bal_sorted_file = sort_dict_by_filename(file_bal)
+    file_inc_sorted_file = sort_dict_by_filename(file_inc)
+    sorted_clade_gc = {k: sort_dict_by_filename(v) for k, v in clade_gc.items()}
+    
+
+    print(f"{'File':<20}{'Δ GC':>10}{'GC (A & D)':>15}{'GC (B & C)':>15}{'GC A':>10}{'GC B':>10}{'GC C':>10}{'GC D':>10}")
+    print('-' * 100)
+
+    for idx, filename in enumerate(file_diff_sorted_file):
+        # Every 10 files, print a GC bin label
+        if idx % 10 == 0:
+            bin_label = idx // 10 + 1  # e.g., bin 1 for 0–9, bin 2 for 10–19, etc.
+            print(f"\n--- GC Bin {bin_label} ---")
+
+        # Extract data
+        diff = file_diff_sorted_file.get(filename, 'N/A')
+        bal = file_bal_sorted_file.get(filename, 'N/A')
+        inc = file_inc_sorted_file.get(filename, 'N/A')
+        a = sorted_clade_gc['A'].get(filename, 'N/A')
+        b = sorted_clade_gc['B'].get(filename, 'N/A')
+        c = sorted_clade_gc['C'].get(filename, 'N/A')
+        d = sorted_clade_gc['D'].get(filename, 'N/A')
+
+        print(f"{filename:<20}{diff:>10}{bal:>15}{inc:>15}{a:>10}{b:>10}{c:>10}{d:>10}")
+
+    csv_path = f'{saving_location}/GC_content_table.csv'  # change if needed
+
+    ####################################### This writes it into a CSV #######################################
+    with open(csv_path, 'w', newline='') as csvfile:
+        writer = csv.writer(csvfile)
+
+        # Write header
+        writer.writerow(['GC Bin', 'File', 'Δ GC', 'GC (A & D)', 'GC (B & C)', 'GC A', 'GC B', 'GC C', 'GC D'])
+
+        # Write rows
+        for idx, filename in enumerate(file_diff_sorted_file):
+            bin_number = idx // 10 + 1
+
+            diff = file_diff_sorted_file.get(filename, 'N/A')
+            bal = file_bal_sorted_file.get(filename, 'N/A')
+            inc = file_inc_sorted_file.get(filename, 'N/A')
+            a = sorted_clade_gc['A'].get(filename, 'N/A')
+            b = sorted_clade_gc['B'].get(filename, 'N/A')
+            c = sorted_clade_gc['C'].get(filename, 'N/A')
+            d = sorted_clade_gc['D'].get(filename, 'N/A')
+
+            writer.writerow([bin_number, filename, diff, bal, inc, a, b, c, d])
+    #####################################################################################################################
+    # GC lists for plotting
+    gc_lists = {k: list(v.values()) for k, v in sorted_clade_gc.items()}
+    x_axis = list(file_diff_sorted_file.values())
+    x_axis_bal = list(file_bal_sorted_file.values())
+    x_axis_inc = list(file_inc_sorted_file.values())
+    y_axis = range(len(x_axis))
+
+    def plot_line(y, lines, title, ylabel, filename, label_height, ylim=None):
+        plt.figure(figsize=(16, 6))
+        for data, label, color in lines:
+            plt.plot(y, data, marker='o', linestyle='--', label=label, color=color)
+
+        for x in range(0, 59, 10):
+            plt.axvline(x=x - 0.5, color='darkgoldenrod', linestyle='--', linewidth=1)
+
+        for i in range(0, 59, 20):
+            plt.axvspan(i - 0.5, i + 9.5, color='gray', alpha=0.1)
+
+        for i, gc in enumerate([1, 2, 3, 4, 5, 6]):
+            plt.text(i * 10 + 5, int(label_height), f'{gc}', ha='center', va='top', fontsize=9)
+
+        plt.xlabel('Dataset #')
+        plt.ylabel(ylabel)
+        plt.title(title)
+        plt.xticks(ticks=range(len(x_axis)), labels=list(range(1, len(x_axis)+1)))
+        if ylim:
+            plt.ylim(*ylim)
+        plt.legend()
+        plt.tight_layout()
+        plt.savefig(filename, dpi=300)
+        plt.show()
+        plt.close()
 
 
+    plot_line(
+        y_axis,
+        [(x_axis, 'Δ GC Content', 'blue')],
+        'Δ GC Content in the Median of Clades A/D v. B/C per Dataset',
+        'Δ GC Content (Clade A/D v. B/C)',
+        f'{saving_location}/Δ_GC_per_Dataset.svg',
+        label_height=24,
+        ylim=(-10, 26)
+    )
 
+    plot_line(
+        y_axis,
+        [(x_axis_inc, 'GC Increase Clades (B & C)', 'green'),
+        (x_axis_bal, 'GC balanced Clades (A & D)', 'orange')],
+        'GC Content Distribution Across Combined Clades with Bin Highlighting',
+        'GC Increased and Balanced',
+        f'{saving_location}/GC_Increase_v._Balanced_Combined.svg',
+        label_height=74,
+        ylim=(40, 75)
+        
+    )
 
+    plot_line(
+        y_axis,
+        [(gc_lists['A'], 'GC Clade (A)', 'blue'),
+        (gc_lists['B'], 'GC Clade (B)', 'lightcoral'),
+        (gc_lists['C'], 'GC Clade (C)', 'green'),
+        (gc_lists['D'], 'GC Clade (D)', 'orange')],
+        'GC Content Distribution Across Clades with Bin Highlighting',
+        'GC Increased and Balanced',
+        f'{saving_location}/GC_Increase_v._Balanced.svg',
+        label_height=74,
+        ylim=(40, 75)
+    )
+
+path = '/home/s36jshem_hpc/sealion/runs/iq_output_2025-05-15_20-59-58_10000'
+gc_graphs(path)
 
 
 
