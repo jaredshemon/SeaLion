@@ -33,6 +33,21 @@ import csv
 import pandas as pd
 import plottable
 
+######################################################################################################
+######################################################################################################
+#### User Inputs: These are locations where you need to input the depencies for your script ##########
+###################################################################################################### 
+working_directory = sys.argv[1] #This is specified in the bash script, where you'd like all your files to end up
+how_many_files = 60 #This is how many files you're running 
+correct_newick_string_user_data = "(((A,B),C),D);" #This is the correct newick string
+sealion_container_location = '/home/s36jshem_hpc/sealion/sealion_script/SeaLion_container_dir' #This is where your sealion container is
+iq_model = "F81" #This is the model for IQTREE, SeaLion must be specified in the Sealion.pl file
+reroot_directory = '/home/s36jshem_hpc/sealion' #This is where the reroot executables/files are located
+user_txt_path = "/home/s36jshem_hpc/sealion/sealion_files/sea_lion/user_file_ALI.txt" #This is where you input the txt file that has all you're AliSim inputs
+tq_dist_path = "/home/s36jshem_hpc/local/bin/" #This is where tq_dist is located
+######################################################################################################
+######################################################################################################
+######################################################################################################
 
 def timed_log(func, description, *args, **kwargs):
     start = time.perf_counter()
@@ -40,8 +55,6 @@ def timed_log(func, description, *args, **kwargs):
     elapsed = time.perf_counter() - start
     logging.info(f'{description} took {elapsed:.2f} seconds')
     return result
-
-working_directory = sys.argv[1]  
 
 if not os.path.exists(working_directory):
     os.makedirs(working_directory)
@@ -509,12 +522,10 @@ def run_sea(sealion_container_location, clade_output_path, sealion_runs_dst):
         tasks.append((fas_fn, txt_fn, sealion_runs_dst, perl_script, sealion_container_location, clade_output_path))
 
     # Run in parallel
-    with multiprocessing.Pool(processes=60) as pool:
+    with multiprocessing.Pool(processes=how_many_files) as pool:
         pool.map(process_task, tasks)
 
     print(f"Processed {len(tasks)} file pairs through SeaLion (in parallel!)")
-
-
 
 ##################################################################
 ### This next section is focused on graphing the results    ######
@@ -2157,25 +2168,18 @@ def gc_graphs(path, saving_location, newick_template):
         ylim=(-10, 26)
     )
  
- 
 ##################################################
 #FILE LOCATIONS/VARIABLE INPUTS:##################
 ##################################################
 def main():
     # Define all input/output paths here
-    user_txt_path = "/home/s36jshem_hpc/sealion/sealion_files/sea_lion/user_file_ALI.txt" #This is where you input the txt file that has all you're AliSim inputs
     ALI_output_directory = f"{working_directory}/ALI_output_{now_format}"  
     iqtree_output_path = f"{working_directory}/iq_output_{now_format}"
     newick_treefile_output_path = f'{working_directory}/tree_output_{now_format}'
     clade_output_path = f"{working_directory}/runs_dir/clade_files_{now_format}"
     sealion_final_directory = f"{working_directory}/sealion_final_output"
     fasta_path = iqtree_output_path
-    iq_model = "F81"
-    correct_newick_string_user_data = "(((A,B),C),D);"
-    tq_dist_path = "/home/s36jshem_hpc/local/bin/"
     newick_corrected_path = f"{working_directory}/corrected_IQ_newick_output_{now_format}"
-    reroot_directory = '/home/s36jshem_hpc/sealion'
-    sealion_container_location = '/home/s36jshem_hpc/sealion/sealion_script/SeaLion_container_dir'
     sealion_runs_dst = f'{clade_output_path}/sealion_runs'
     graph_saving_location = f"{working_directory}/plots/{now_format}/"
     if not os.path.exists(graph_saving_location):
@@ -2211,7 +2215,6 @@ def main():
     #support_b4_af(clade_output_path, graph_saving_location)
     #reject_GC(clade_output_path, graph_saving_location)
 
-    
 if __name__ == "__main__":
     main()   
 
@@ -2220,15 +2223,15 @@ if __name__ == "__main__":
 
 
 
-#################################################################
-### This function just replots the IQTREE correct quartets  #####                                              
-#################################################################
 
 
 
 
 '''
 def IQ_correct(IQ_csv_location, saving_location):
+    #################################################################
+    ### This function just replots the IQTREE correct quartets  #####                                              
+    #################################################################
     data1 = np.loadtxt(IQ_csv_location, delimiter=',')
 
     x1, y1 = data1[:, 0], data1[:, 1]
