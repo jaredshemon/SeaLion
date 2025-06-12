@@ -788,9 +788,11 @@ def graph_nj_correctness():
 
 reroot_directory = '/home/s36jshem_hpc/sealion'
 '''
+'''
 def overlay_jermiin():
     ############################################################################################################################################
     #### This function should overlay all the IQTREE outputs from jermiin's setup- branch lengths .01, .025, .05, to show why we chose .05 #####
+    #### only works in marvin                                                                                                              #####
     ############################################################################################################################################
     path_01 = '/home/s36jshem_hpc/sealion/runs/jermiin/plots/2025-06-08_17-37-28/IQTREE_SUCCESS.csv'
     path_025 = '/home/s36jshem_hpc/sealion/runs/jermiin/plots/2025-06-08_20-18-15/IQTREE_SUCCESS.csv'
@@ -826,3 +828,4 @@ def overlay_jermiin():
     plt.show()
 
 overlay_jermiin()
+'''
