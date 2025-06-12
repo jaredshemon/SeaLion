@@ -31,13 +31,13 @@ import statistics
 from collections import defaultdict
 import csv
 import pandas as pd
-import plottable
+#import plottable
 
 ######################################################################################################
 ######################################################################################################
 #### User Inputs: These are locations where you need to input the depencies for your script ##########
 ###################################################################################################### 
-working_directory = f'/home/s36jshem_hpc/sealion/runs/setup1' #This is specified in the bash script, where you'd like all your files to end up
+working_directory = sys.argv[1] #This is specified in the bash script, where you'd like all your files to end up
 how_many_files = 60 #This is how many files you're running 
 correct_newick_string_user_data = "(((A,B),C),D);" #This is the correct newick string
 sealion_container_location = '/home/s36jshem_hpc/sealion/sealion_script/SeaLion_container_dir' #This is where your sealion container is
@@ -1895,7 +1895,6 @@ def support_b4_af(clade_output_path, saving_location):
     plt.show()
                            
 def reject_GC(clade_output_path, saving_location):
-#### THIS DOESNT WORK RIGHT!!! TRY AND EDIT IT FOR EACH INDIVIDUAL DATASET 
 #######################################################################
 ### This graphs the rejected trees as a function of the GC contents ###   
 #######################################################################
@@ -2029,7 +2028,7 @@ def gc_graphs(path, saving_location, newick_template):
                 A, B, C, D = [round(medians[p], 3) for p in 'ABCD']
                 GCbal = round((B + C) / 2, 3)
                 GCinc = round((A + D) / 2, 3) ####These two variables switch if you switch the sequences that are impacted
-                GCdiff = round((GCbal - GCinc), 3) #if the graphs are messed up you can edit them here
+                GCdiff = round((GCinc - GCbal), 3) #if the graphs are messed up you can edit them here
 
                 file_diff[filename_key] = GCdiff
                 file_bal[filename_key] = GCbal
@@ -2049,7 +2048,7 @@ def gc_graphs(path, saving_location, newick_template):
     sorted_clade_gc = {k: sort_dict_by_filename(v) for k, v in clade_gc.items()}
 
 
-    print(f"{'File':<20}{'Δ GC':>10}{'GC (B & C)':>15}{'GC (A & D)':>15}{'GC A':>10}{'GC B':>10}{'GC C':>10}{'GC D':>10}")
+    print(f"{'File':<20}{'Δ GC':>10}{f'GC (B & C)':>15}{'GC (A & D)':>15}{'GC A':>10}{'GC B':>10}{'GC C':>10}{'GC D':>10}")
     print('-' * 100)
 
     for idx, filename in enumerate(file_diff_sorted_file):
@@ -2076,7 +2075,7 @@ def gc_graphs(path, saving_location, newick_template):
         writer = csv.writer(csvfile)
 
         # Write header
-        writer.writerow(['GC Bin', 'File', 'Δ GC', 'GC (A & D)', 'GC (B & C)', 'GC A', 'GC B', 'GC C', 'GC D'])
+        writer.writerow(['GC Bin', 'File', 'Δ GC', f'GC ({", ".join(gc_increased)})', f'GC ({", ".join(gc_balanced)})', 'GC A', 'GC B', 'GC C', 'GC D'])
 
         # Write rows
         for idx, filename in enumerate(file_diff_sorted_file):
@@ -2184,14 +2183,14 @@ def main():
         os.makedirs(graph_saving_location)
     IQ_csv_location = f'{graph_saving_location}IQTREE_SUCCESS.csv'
 
-    #outgroup, newick_template = timed_log(run_AliSIM, 'ALISIM', user_txt_path, working_directory, ALI_output_directory)
-    #timed_log(rename_seq_fasta, 'IQTREE rename', ALI_output_directory, iqtree_output_path, iq_model)
-    #move_tree_files(iqtree_output_path, newick_treefile_output_path)
-    #make_clade_files(fasta_path, clade_output_path, sealion_final_directory)
-    #shrink_newick(newick_treefile_output_path, newick_corrected_path, clade_output_path, reroot_directory, outgroup)
-    #graph_correct_outputs(newick_corrected_path, correct_newick_string_user_data, tq_dist_path, graph_saving_location, working_directory)
+    outgroup, newick_template = timed_log(run_AliSIM, 'ALISIM', user_txt_path, working_directory, ALI_output_directory)
+    timed_log(rename_seq_fasta, 'IQTREE rename', ALI_output_directory, iqtree_output_path, iq_model)
+    move_tree_files(iqtree_output_path, newick_treefile_output_path)
+    make_clade_files(fasta_path, clade_output_path, sealion_final_directory)
+    shrink_newick(newick_treefile_output_path, newick_corrected_path, clade_output_path, reroot_directory, outgroup)
+    graph_correct_outputs(newick_corrected_path, correct_newick_string_user_data, tq_dist_path, graph_saving_location, working_directory)
     gc_graphs(iqtree_output_path, graph_saving_location, newick_template) 
-    #run_sea(sealion_container_location, clade_output_path, sealion_runs_dst)
+    run_sea(sealion_container_location, clade_output_path, sealion_runs_dst)
     best_newick, best_sup, saving_location, newick_strings1, clade_file_location, clade_file_time, tsv_location, unfiltered_topology_supports, newick_strings = diff_visualizations(clade_output_path, graph_saving_location)
     unfiltered_quartet_supports(unfiltered_topology_supports, graph_saving_location)
     IQ_quartet_supports(iqtree_output_path, newick_corrected_path, correct_newick_string_user_data, tq_dist_path, working_directory, graph_saving_location)
