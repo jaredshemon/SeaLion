@@ -794,9 +794,11 @@ outgroup = 'D'
 shrink_nj_tree(nj_tree_location, clade_output_path)
 
 '''
+'''
 def overlay_jermiin():
     ############################################################################################################################################
     #### This function should overlay all the IQTREE outputs from jermiin's setup- branch lengths .01, .025, .05, to show why we chose .05 #####
+    #### only works in marvin                                                                                                              #####
     ############################################################################################################################################
     path_01 = '/home/s36jshem_hpc/sealion/runs/jermiin/plots/2025-06-12_23-55-14 /IQTREE_SUCCESS.csv'
     path_025 = '/home/s36jshem_hpc/sealion/runs/jermiin/plots/2025-06-13_00-01-16/IQTREE_SUCCESS.csv'
@@ -832,3 +834,4 @@ def overlay_jermiin():
     plt.show()
 
 overlay_jermiin()
+'''
