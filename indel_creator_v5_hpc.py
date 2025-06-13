@@ -1766,11 +1766,11 @@ def combined_graph_IQ_Unfil(differencesU, diffs, indices, saving_location):
     plt.savefig(f'{saving_location}/Combined_Support_Delta_Unfiltered_LogLikelihood.svg', dpi=300)
     plt.show()
 
-def support_b4_af_filtering(results, saving_location, clade_output_path):
+def support_b4_af_filtering(results_filtered, saving_location, clade_output_path):
 ################################################################################################################
 ### This should look at the difference between correct topology support before and after filtering Barchart ####        
 ################################################################################################################
-
+    results = results_filtered #Need the filtered results and not the unfiltered results for this graph
     after_support = []
     before_support = []
     rejected = []
@@ -2218,7 +2218,7 @@ def main():
     combined_graph_bar(differences, differencesU, graph_saving_location)
     combined_graph_IQ(differences, diffs, indices, graph_saving_location)
     combined_graph_IQ_Unfil(differencesU, diffs, indices, graph_saving_location)
-    support_b4_af_filtering(results, graph_saving_location, clade_output_path)
+    support_b4_af_filtering(results_filtered, graph_saving_location, clade_output_path)
     support_b4_af(clade_output_path, graph_saving_location)
     reject_GC(clade_output_path, graph_saving_location)
 
