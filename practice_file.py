@@ -42,7 +42,7 @@ def make_clade_files(fasta_path, clade_path):
         os.makedirs(clade_path)
 
     def extract_number(file_name):
-        match = re.search(r'\d+', file_name)
+        #match = re.search(r'\d+', file_name)
         return int(match.group()) if match else -1
 
     files = sorted(
@@ -660,9 +660,11 @@ plot_line(
     label_height=74,
     ylim=(40, 75)
 )
-'''
-'''
-def shrink_nj_tree(nj_tree_location, clade_output_path, correct_newick_string_user_data, tq_dist_path, saving_location, working_directory):
+
+
+
+def shrink_nj_tree(nj_tree_location, clade_output_path):
+THIS DOESNT WORK, NJ DOESN'T PRODUCE THE CORRECT TREES
 #############################################################################################################################################
 ###This function should take the newick string from our tree file, cross check it with the original, then graphs the correct ones ###########
 #### vs the incorrect ones. (IQTREE Neighbor Joining Method) Same as graph correct outputs function  ########################################
@@ -670,18 +672,17 @@ def shrink_nj_tree(nj_tree_location, clade_output_path, correct_newick_string_us
     
     newick_files = [f for f in os.listdir(nj_tree_location)]
     
-    full_path = [os.path.join(nj_tree_location, f) for f in newick_files]
-    
+    full_path = [os.path.join(nj_tree_location, f) for f in newick_files if f.endswith('bionj')]
     newick_strings_files = {}
     for file in full_path:
         with open(file, 'r') as f:
             for line in f:
-                line1 = re.sub(r":\d+\.\d+", "", line)
+                line1 = re.sub(r":-?\d+\.\d+(?:[eE][+-]?\d+)?", "", line)
                 newick_strings_files[file] = line1.strip()
     print(newick_strings_files)
     #### This below replaces the fasta file with the corresponding clade file, so we can run the subprocess command below    
     clade_def = [f for f in os.listdir(clade_output_path) if f.startswith('clade_def')]
-
+    
     updated_newick_strings = {}
     for clade_file in clade_def:
         clade_num_match = re.search(r'clade_def_file_(\d+)', clade_file)
@@ -694,8 +695,8 @@ def shrink_nj_tree(nj_tree_location, clade_output_path, correct_newick_string_us
                     # Match clade number with fasta number
                     if fasta_num == clade_num:
                         updated_newick_strings[clade_file] = newick
-                        print(f"Matched Clade {clade_file} with Neighbor_joining_tree_file {fasta_file}")
-                        
+                        print(f"Matched Clade {clade_file} with Neighbor joining Tree File {fasta_file}")
+             
     clade_file_location = clade_output_path
     results = {}
     print(updated_newick_strings)
@@ -716,7 +717,7 @@ def shrink_nj_tree(nj_tree_location, clade_output_path, correct_newick_string_us
 
     sorted_results = dict(sorted(results.items(), key=lambda x: int(re.search(r'clade_def_file_(\d+)', x[0]).group(1))))
     print(sorted_results)
-   
+
 nj_tree_location = f'/home/s36jshem_hpc/sealion/runs/setup3/iq_output_2025-06-03_20-55-25'
 shrink_nj_tree(nj_tree_location, clade_output_path, correct_newick_string_user_data, tq_dist_path, saving_location, working_directory)
 
@@ -786,7 +787,12 @@ def graph_nj_correctness():
     plt.savefig(f'{saving_location}/IQTREE_Success_GC_Content.svg', format='svg')
     plt.show()
 
-reroot_directory = '/home/s36jshem_hpc/sealion'
+nj_tree_location = '/home/s36jshem_hpc/sealion/runs/iq_output_2025-05-30_17-57-54'
+reroot_directory = '/home/s36jshem_hpc/sealion/'
+clade_output_path = '/home/s36jshem_hpc/sealion/sealion_script/runs_dir/clade_files_2025-05-30_17-57-54'#make sure to run this before sealion
+outgroup = 'D'
+shrink_nj_tree(nj_tree_location, clade_output_path)
+
 '''
 '''
 def overlay_jermiin():
@@ -794,9 +800,9 @@ def overlay_jermiin():
     #### This function should overlay all the IQTREE outputs from jermiin's setup- branch lengths .01, .025, .05, to show why we chose .05 #####
     #### only works in marvin                                                                                                              #####
     ############################################################################################################################################
-    path_01 = '/home/s36jshem_hpc/sealion/runs/jermiin/plots/2025-06-08_17-37-28/IQTREE_SUCCESS.csv'
-    path_025 = '/home/s36jshem_hpc/sealion/runs/jermiin/plots/2025-06-08_20-18-15/IQTREE_SUCCESS.csv'
-    path_05 = '/home/s36jshem_hpc/sealion/runs/jermiin/plots/2025-06-08_20-19-26/IQTREE_SUCCESS.csv'
+    path_01 = '/home/s36jshem_hpc/sealion/runs/jermiin/plots/2025-06-12_23-55-14 /IQTREE_SUCCESS.csv'
+    path_025 = '/home/s36jshem_hpc/sealion/runs/jermiin/plots/2025-06-13_00-01-16/IQTREE_SUCCESS.csv'
+    path_05 = '/home/s36jshem_hpc/sealion/runs/jermiin/plots/2025-06-13_00-03-12/IQTREE_SUCCESS.csv'
     df1 = pd.read_csv(path_01)
     df2 = pd.read_csv(path_025)
     df3 = pd.read_csv(path_05)
@@ -824,7 +830,7 @@ def overlay_jermiin():
     plt.tight_layout()
 
     # Save and show
-    plt.savefig(f'/home/s36jshem_hpc/sealion/runs/jermiin/plots/Overlay_jermiin.svg', dpi=300)
+    plt.savefig(f'/home/s36jshem_hpc/sealion/runs/jermiin/plots/Overlay_jermiin_2.svg', dpi=300)
     plt.show()
 
 overlay_jermiin()

@@ -31,22 +31,20 @@ import statistics
 from collections import defaultdict
 import csv
 import pandas as pd
-import plottable
+#import plottable
 
 ######################################################################################################
 ######################################################################################################
 #### User Inputs: These are locations where you need to input the depencies for your script ##########
 ###################################################################################################### 
-working_directory = f'/home/s36jshem_hpc/sealion/runs/setup1' #This is specified in the bash script, where you'd like all your files to end up
+working_directory = sys.argv[1] #This is specified in the bash script, where you'd like all your files to end up
 how_many_files = 60 #This is how many files you're running 
 correct_newick_string_user_data = "(((A,B),C),D);" #This is the correct newick string
-sealion_container_location = '/share/scientific_bin/singularity/containers/SeaLion_container.sif' #This is where your sealion container is
+sealion_container_location = '/home/s36jshem_hpc/sealion/sealion_script/SeaLion_container_dir' #This is where your sealion container is
 iq_model = "F81" #This is the model for IQTREE, SeaLion must be specified in the Sealion.pl file
-reroot_directory = '/home/jshemonsky/sealion' #This is where the reroot executables/files are located
-user_txt_path = "/home/jshemonsky/sealion/sea_lion/user_file_ALI.txt" #This is where you input the txt file that has all you're AliSim inputs
-tq_dist_path = "/home/jshemonsky/sealion/tqdist/tqDist-1.0.2/install/bin/" #This is where tq_dist/quartet_dist command is located
-perl_script_location = '/home/jshemonsky/sealion/singlularity_sealion/sealion1.022_dev-version.pl' #The exact path where your perl script is located
-icebreaker_location = '/home/jshemonsky/sealion/singlularity_sealion/' #Directory where icebreaker is located
+reroot_directory = '/home/s36jshem_hpc/sealion' #This is where the reroot executables/files are located
+user_txt_path = "/home/s36jshem_hpc/sealion/sealion_files/sea_lion/user_file_ALI.txt" #This is where you input the txt file that has all you're AliSim inputs
+tq_dist_path = "/home/s36jshem_hpc/local/bin/" #This is where tq_dist is located
 ######################################################################################################
 ######################################################################################################
 ######################################################################################################
@@ -182,11 +180,11 @@ def run_AliSIM(user_txt_path, working_directory, ALI_output_directory):
         with open(newick_path, "w") as nwk_file:
             nwk_file.write(newick + '\n')   
 
-        command = f'iqtree3 --alisim {out_file_prefix}_{iteration} -m {model} -t {newick_path} --out-format {format} --length {seq_length}'
+        command = f'iqtree2 --alisim {out_file_prefix}_{iteration} -m {model} -t {newick_path} --out-format {format} --length {seq_length}'
         try:
             subprocess.run(command, cwd=working_directory, shell=True, check=True)
         except Exception as e:
-            print(f"Error running iqtree3 on iteration {iteration}: {e}")
+            print(f"Error running iqtree2 on iteration {iteration}: {e}")
 
         # Move generated files
         for f in os.listdir(working_directory):
@@ -229,7 +227,7 @@ def rename_seq_fasta(ALI_output_directory, IQTREE_path, iq_model):
     for file_name in indel_out_files:
         try:
             file_path = os.path.join(IQTREE_path, file_name)
-            command = f"iqtree3 -s {file_path} -m {iq_model} " #This can run a little funny on occasion, you may have to go back into it and manually rerun it 
+            command = f"iqtree2 -s {file_path} -m {iq_model} " #This can run a little funny on occasion, you may have to go back into it and manually rerun it 
             subprocess.run(command, cwd=IQTREE_path, shell=True)
         except Exception as e:
             print(f"Error loading file properly: {e}")
@@ -415,7 +413,7 @@ def graph_correct_outputs(newick_corrected_path, correct_newick_string_user_data
             f.write(stripped_newick(user_newick))
 
 
-        command = f"{tq_dist_path}/quartet_dist {newick_file_path} {user_newick_path}"
+        command = f"./quartet_dist {newick_file_path} {user_newick_path}"
         result = subprocess.run(command, cwd = tq_dist_path, shell=True, capture_output = True, text = True)
         output = result.stdout.strip()
         results.append(int(output))
@@ -464,46 +462,40 @@ def graph_correct_outputs(newick_corrected_path, correct_newick_string_user_data
 
 
 def process_task(args):
-    fas_fn, txt_fn, sealion_runs_dst, perl_script, sealion_container_location, clade_output_path, icebreaker_location = args
+    fas_fn, txt_fn, sealion_runs_dst, perl_script, sealion_container_location, clade_output_path = args
 
     # Create working subdirectory for this task
     runs_dir = os.path.join(sealion_runs_dst, fas_fn)
     os.makedirs(runs_dir, exist_ok=True)
 
-    icebreaker_src = os.path.join(f'{icebreaker_location}', "icebreaker.o")
+    icebreaker_src = os.path.join(sealion_container_location, "opt/SeaLion/icebreaker.o")
     icebreaker_dst = os.path.join(runs_dir, "icebreaker.o")
     shutil.copy(icebreaker_src, icebreaker_dst)
     
     # Full paths to input files
     fas_src = os.path.join(clade_output_path, fas_fn)
     txt_src = os.path.join(clade_output_path, txt_fn)
+
     # Copy the input files to the task folder
-    try:
-        # Move files
-        fas_dst = os.path.join(runs_dir, fas_fn)
-        txt_dst = os.path.join(runs_dir, txt_fn)
-        shutil.move(fas_src, fas_dst)
-        shutil.move(txt_src, txt_dst)
-        # Change to task-specific directory
-        os.chdir(runs_dir)
+    fas_dst = os.path.join(runs_dir, fas_fn)
+    txt_dst = os.path.join(runs_dir, txt_fn)
+    shutil.move(fas_src, fas_dst)
+    shutil.move(txt_src, txt_dst)
+    
+    # Change to task-specific directory
+    os.chdir(runs_dir)
 
-        # Build and run the command
-        cmd = f"singularity exec {sealion_container_location} {perl_script} -i {fas_fn} -p {txt_fn} -o D -M '1000' -l '10000' -prt 3 -tlrisk 0.5 -s"
-        print(f"→ Running in {runs_dir}: {cmd}")
-        exit_code = os.system(cmd)
+    # Build and run the command
+    cmd = f"apptainer exec {sealion_container_location} {perl_script} -i {fas_fn} -p {txt_fn} -o D -M '1000' -l '10000' -prt 3 -tlrisk 0.5 -s"
+    print(f"→ Running in {runs_dir}: {cmd}")
+    os.system(cmd)
 
-        if exit_code != 0:
-            raise RuntimeError(f"Command failed with exit code {exit_code}")
-
-    except (OSError, shutil.Error, RuntimeError) as e:
-        print(f"[ERROR] An error occurred: {e}")
-        
-def run_sea(perl_script_location, sealion_container_location, clade_output_path, sealion_runs_dst):
+def run_sea(sealion_container_location, clade_output_path, sealion_runs_dst):
 ####################################################################################
 #####This script moves the clade files, copies SeaLion, and runs parallel jobs #####
 ####################################################################################
 
-    perl_script =  perl_script_location
+    perl_script = os.path.join(sealion_container_location, "opt/SeaLion/sealion1.pl")
     
     # Create the main run directory
     if not os.path.exists(sealion_runs_dst):
@@ -514,7 +506,7 @@ def run_sea(perl_script_location, sealion_container_location, clade_output_path,
     # Find and sort clade files
     clade_def_files = [f for f in os.listdir(clade_output_path) if f.startswith('clade_def_file') and f.endswith('.txt')]
     clade_files = [f for f in os.listdir(clade_output_path) if f.startswith('clade_file') and f.endswith('.fas')]
-
+    
     clade_def_files.sort(key=lambda x: tuple(map(int, re.search(r'clade_def_file_(\d+)\.txt', x).groups())))
     clade_files.sort(key=lambda x: tuple(map(int, re.search(r'clade_file_(\d+)\.fas', x).groups())))
 
@@ -525,7 +517,7 @@ def run_sea(perl_script_location, sealion_container_location, clade_output_path,
     # Prepare the list of tasks
     tasks = []
     for fas_fn, txt_fn in zip(clade_files, clade_def_files):
-        tasks.append((fas_fn, txt_fn, sealion_runs_dst, perl_script, sealion_container_location, clade_output_path, icebreaker_location))
+        tasks.append((fas_fn, txt_fn, sealion_runs_dst, perl_script, sealion_container_location, clade_output_path))
 
     # Run in parallel
     with multiprocessing.Pool(processes=how_many_files) as pool:
@@ -1764,11 +1756,11 @@ def combined_graph_IQ_Unfil(differencesU, diffs, indices, saving_location):
     plt.savefig(f'{saving_location}/Combined_Support_Delta_Unfiltered_LogLikelihood.svg', dpi=300)
     plt.show()
 
-def support_b4_af_filtering(results_filtered, saving_location, clade_output_path):
+def support_b4_af_filtering(results, saving_location, clade_output_path):
 ################################################################################################################
 ### This should look at the difference between correct topology support before and after filtering Barchart ####        
 ################################################################################################################
-    results = results_filtered #Need the filtered results and not the unfiltered results for this graph
+
     after_support = []
     before_support = []
     rejected = []
@@ -2036,7 +2028,7 @@ def gc_graphs(path, saving_location, newick_template):
                 A, B, C, D = [round(medians[p], 3) for p in 'ABCD']
                 GCbal = round((B + C) / 2, 3)
                 GCinc = round((A + D) / 2, 3) ####These two variables switch if you switch the sequences that are impacted
-                GCdiff = round((GCbal - GCinc), 3) #if the graphs are messed up you can edit them here
+                GCdiff = round((GCinc - GCbal), 3) #if the graphs are messed up you can edit them here
 
                 file_diff[filename_key] = GCdiff
                 file_bal[filename_key] = GCbal
@@ -2056,7 +2048,7 @@ def gc_graphs(path, saving_location, newick_template):
     sorted_clade_gc = {k: sort_dict_by_filename(v) for k, v in clade_gc.items()}
 
 
-    print(f"{'File':<20}{'Δ GC':>10}{'GC (B & C)':>15}{'GC (A & D)':>15}{'GC A':>10}{'GC B':>10}{'GC C':>10}{'GC D':>10}")
+    print(f"{'File':<20}{'Δ GC':>10}{f'GC (B & C)':>15}{'GC (A & D)':>15}{'GC A':>10}{'GC B':>10}{'GC C':>10}{'GC D':>10}")
     print('-' * 100)
 
     for idx, filename in enumerate(file_diff_sorted_file):
@@ -2190,18 +2182,7 @@ def main():
     if not os.path.exists(graph_saving_location):
         os.makedirs(graph_saving_location)
     IQ_csv_location = f'{graph_saving_location}IQTREE_SUCCESS.csv'
-<<<<<<< HEAD
 
-    #outgroup, newick_template = timed_log(run_AliSIM, 'ALISIM', user_txt_path, working_directory, ALI_output_directory)
-    #timed_log(rename_seq_fasta, 'IQTREE rename', ALI_output_directory, iqtree_output_path, iq_model)
-    #move_tree_files(iqtree_output_path, newick_treefile_output_path)
-    #make_clade_files(fasta_path, clade_output_path, sealion_final_directory)
-    #shrink_newick(newick_treefile_output_path, newick_corrected_path, clade_output_path, reroot_directory, outgroup)
-    #graph_correct_outputs(newick_corrected_path, correct_newick_string_user_data, tq_dist_path, graph_saving_location, working_directory)
-    gc_graphs(iqtree_output_path, graph_saving_location, newick_template) 
-    #run_sea(sealion_container_location, clade_output_path, sealion_runs_dst)
-=======
-    
     outgroup, newick_template = timed_log(run_AliSIM, 'ALISIM', user_txt_path, working_directory, ALI_output_directory)
     timed_log(rename_seq_fasta, 'IQTREE rename', ALI_output_directory, iqtree_output_path, iq_model)
     move_tree_files(iqtree_output_path, newick_treefile_output_path)
@@ -2209,8 +2190,7 @@ def main():
     shrink_newick(newick_treefile_output_path, newick_corrected_path, clade_output_path, reroot_directory, outgroup)
     graph_correct_outputs(newick_corrected_path, correct_newick_string_user_data, tq_dist_path, graph_saving_location, working_directory)
     gc_graphs(iqtree_output_path, graph_saving_location, newick_template) 
-    run_sea(perl_script_location, sealion_container_location, clade_output_path, sealion_runs_dst)
->>>>>>> 6e9608b81521ba5d9129634bc330115187d3247a
+    run_sea(sealion_container_location, clade_output_path, sealion_runs_dst)
     best_newick, best_sup, saving_location, newick_strings1, clade_file_location, clade_file_time, tsv_location, unfiltered_topology_supports, newick_strings = diff_visualizations(clade_output_path, graph_saving_location)
     unfiltered_quartet_supports(unfiltered_topology_supports, graph_saving_location)
     IQ_quartet_supports(iqtree_output_path, newick_corrected_path, correct_newick_string_user_data, tq_dist_path, working_directory, graph_saving_location)
@@ -2228,7 +2208,7 @@ def main():
     combined_graph_bar(differences, differencesU, graph_saving_location)
     combined_graph_IQ(differences, diffs, indices, graph_saving_location)
     combined_graph_IQ_Unfil(differencesU, diffs, indices, graph_saving_location)
-    support_b4_af_filtering(results_filtered, graph_saving_location, clade_output_path)
+    support_b4_af_filtering(results, graph_saving_location, clade_output_path)
     support_b4_af(clade_output_path, graph_saving_location)
     reject_GC(clade_output_path, graph_saving_location)
 
