@@ -794,15 +794,15 @@ outgroup = 'D'
 shrink_nj_tree(nj_tree_location, clade_output_path)
 
 '''
-'''
+
 def overlay_jermiin():
     ############################################################################################################################################
     #### This function should overlay all the IQTREE outputs from jermiin's setup- branch lengths .01, .025, .05, to show why we chose .05 #####
     #### only works in marvin                                                                                                              #####
     ############################################################################################################################################
-    path_01 = '/home/s36jshem_hpc/sealion/runs/jermiin/plots/2025-06-12_23-55-14 /IQTREE_SUCCESS.csv'
-    path_025 = '/home/s36jshem_hpc/sealion/runs/jermiin/plots/2025-06-13_00-01-16/IQTREE_SUCCESS.csv'
-    path_05 = '/home/s36jshem_hpc/sealion/runs/jermiin/plots/2025-06-13_00-03-12/IQTREE_SUCCESS.csv'
+    path_01 = '/home/s36jshem_hpc/sealion/runs/jermiin/plots/2025-06-13_09-13-28/IQTREE_SUCCESS.csv'
+    path_025 = '/home/s36jshem_hpc/sealion/runs/jermiin/plots/2025-06-13_09-14-23/IQTREE_SUCCESS.csv'
+    path_05 = '/home/s36jshem_hpc/sealion/runs/jermiin/plots/2025-06-13_09-16-42/IQTREE_SUCCESS.csv'
     df1 = pd.read_csv(path_01)
     df2 = pd.read_csv(path_025)
     df3 = pd.read_csv(path_05)
@@ -830,8 +830,7 @@ def overlay_jermiin():
     plt.tight_layout()
 
     # Save and show
-    plt.savefig(f'/home/s36jshem_hpc/sealion/runs/jermiin/plots/Overlay_jermiin_2.svg', dpi=300)
+    plt.savefig(f'/home/s36jshem_hpc/sealion/runs/jermiin/plots/Overlay_jermiin_3.svg', dpi=300)
     plt.show()
 
 overlay_jermiin()
-'''

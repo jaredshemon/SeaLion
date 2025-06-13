@@ -37,7 +37,7 @@ import pandas as pd
 ######################################################################################################
 #### User Inputs: These are locations where you need to input the depencies for your script ##########
 ###################################################################################################### 
-working_directory = sys.argv[1] #This is specified in the bash script, where you'd like all your files to end up
+working_directory = '/home/s36jshem_hpc/sealion/runs/setup1' #This is specified in the bash script, where you'd like all your files to end up
 how_many_files = 60 #This is how many files you're running 
 correct_newick_string_user_data = "(((A,B),C),D);" #This is the correct newick string
 sealion_container_location = '/home/s36jshem_hpc/sealion/sealion_script/SeaLion_container_dir' #This is where your sealion container is
@@ -712,7 +712,7 @@ def unfiltered_quartet_supports(unfiltered_topology_supports, saving_location):
     df.set_index('Dataset #', inplace=True)
     df.to_csv(f'{saving_location}/Table_Best_Supported_Unfiltered_Topology.csv')
     print(df)
-
+    print(support, topology, supports)
     # Plot
     plt.figure(figsize=(14, 6))
     plt.bar(labels, supports, color=bar_colors)
@@ -1756,11 +1756,11 @@ def combined_graph_IQ_Unfil(differencesU, diffs, indices, saving_location):
     plt.savefig(f'{saving_location}/Combined_Support_Delta_Unfiltered_LogLikelihood.svg', dpi=300)
     plt.show()
 
-def support_b4_af_filtering(results, saving_location, clade_output_path):
+def support_b4_af_filtering(results_filtered, saving_location, clade_output_path):
 ################################################################################################################
 ### This should look at the difference between correct topology support before and after filtering Barchart ####        
 ################################################################################################################
-
+    results = results_filtered #Because it looks at the results from FILTERED ANALYSIS not the unfiltered analysis
     after_support = []
     before_support = []
     rejected = []
@@ -1789,8 +1789,7 @@ def support_b4_af_filtering(results, saving_location, clade_output_path):
     difference = [float(after) - float(before) for before, after in zip(before_support, after_support)]
     x_axis = range(1,61)
     y_1 = [float(i) for i in difference]
-    colors = ['darkorange' if i > 0 else 'skyblue' for i in y_1]
-    
+    colors = ['darkorange' if i > 0 else 'skyblue' for i in y_1] #The red colors are coordinated with whether or not the filtering increased or decreased the support (originally skyblue)
     plt.figure(figsize=(12, 6))
 
     # Plot before and after support
@@ -1816,8 +1815,8 @@ def support_b4_af_filtering(results, saving_location, clade_output_path):
     
     for x, res in zip(x_axis, results):
         if res == 1:
-            plt.bar(x, y_1[x-1], color='red', edgecolor='black', label='Failed Topologies')
-    
+            plt.bar(x, y_1[x-1], color='red', edgecolor='black', label='Failed Topologies ')
+    print(results)
     x_handle = mlines.Line2D([], [], color='none', marker='x', markersize=10, 
                         markerfacecolor='red', label='Rejected', linestyle='None')
 
@@ -1828,7 +1827,7 @@ def support_b4_af_filtering(results, saving_location, clade_output_path):
     plt.xticks(ticks=list(x_axis), labels=[str(i) for i in x_axis], rotation=45)
     plt.ylim(-0.05, 0.12)
     legend_patch = mpatches.Patch(color='gray', label='Difference After v. Before filtering')
-    legend_patch1 = (mpatches.Patch(color='red', label='Failed Topologies'))
+    legend_patch1 = (mpatches.Patch(color='red', label='Failed Topologies (RISK + DIST)'))
     plt.legend(handles=[legend_patch, x_handle, legend_patch1])  
     plt.tight_layout()
 
@@ -1995,7 +1994,6 @@ def gc_graphs(path, saving_location, newick_template):
     file_bal = {}
     file_inc = {}
     clade_gc = {k: {} for k in 'ABCD'}
-
     
     prefixes = ['A', 'B', 'C', 'D']
 
@@ -2047,14 +2045,18 @@ def gc_graphs(path, saving_location, newick_template):
     file_inc_sorted_file = sort_dict_by_filename(file_inc)
     sorted_clade_gc = {k: sort_dict_by_filename(v) for k, v in clade_gc.items()}
 
+    # This parses the newick string 
+    newick_string = newick_template
+    gc_status = parse_gc_content(newick_string)
 
-    print(f"{'File':<20}{'Δ GC':>10}{f'GC (B & C)':>15}{'GC (A & D)':>15}{'GC A':>10}{'GC B':>10}{'GC C':>10}{'GC D':>10}")
-    print('-' * 100)
+    gc_increased = [k for k, v in gc_status.items() if v == "GC Increased"]
+    gc_balanced = [k for k, v in gc_status.items() if v == "Balanced"]
 
+    #################################
+    rows = []
     for idx, filename in enumerate(file_diff_sorted_file):
-        # Every 10 files, print a GC bin label
         if idx % 10 == 0:
-            bin_label = idx // 10 + 1  # e.g., bin 1 for 0–9, bin 2 for 10–19, etc.
+            bin_label = idx // 10 + 1
             print(f"\n--- GC Bin {bin_label} ---")
 
         # Extract data
@@ -2066,38 +2068,25 @@ def gc_graphs(path, saving_location, newick_template):
         c = sorted_clade_gc['C'].get(filename, 'N/A')
         d = sorted_clade_gc['D'].get(filename, 'N/A')
 
-        print(f"{filename:<20}{diff:>10}{bal:>15}{inc:>15}{a:>10}{b:>10}{c:>10}{d:>10}")
+        rows.append({
+            'GC Bin': bin_label,
+            'Dataset File': filename,
+            'Δ GC': diff,
+            f'GC Increasing ({", ".join(gc_increased)}) Clades': inc,
+            f'GC Balanced ({", ".join(gc_balanced)}) Clades': bal,
+            'Clade A': a,
+            'Clade B': b,
+            'Clade C': c,
+            'Clade D': d,
+        })
 
-    csv_path = f'{saving_location}/GC_content_table.csv'  # change if needed
+    df = pd.DataFrame(rows)
+    csv_path = os.path.join(saving_location, "GC_content_table.csv")
+    df.to_csv(csv_path, index=False)
+    print(df)
 
-    ####################################### This writes it into a CSV #######################################
-    with open(csv_path, 'w', newline='') as csvfile:
-        writer = csv.writer(csvfile)
-
-        # Write header
-        writer.writerow(['GC Bin', 'File', 'Δ GC', f'GC ({", ".join(gc_increased)})', f'GC ({", ".join(gc_balanced)})', 'GC A', 'GC B', 'GC C', 'GC D'])
-
-        # Write rows
-        for idx, filename in enumerate(file_diff_sorted_file):
-            bin_number = idx // 10 + 1
-
-            diff = file_diff_sorted_file.get(filename, 'N/A')
-            bal = file_bal_sorted_file.get(filename, 'N/A')
-            inc = file_inc_sorted_file.get(filename, 'N/A')
-            a = sorted_clade_gc['A'].get(filename, 'N/A')
-            b = sorted_clade_gc['B'].get(filename, 'N/A')
-            c = sorted_clade_gc['C'].get(filename, 'N/A')
-            d = sorted_clade_gc['D'].get(filename, 'N/A')
-
-            writer.writerow([bin_number, filename, diff, bal, inc, a, b, c, d])
-    #####################################################################################################################
-    # This parses the newick string 
-    newick_string = newick_template
-    gc_status = parse_gc_content(newick_string)
-
-    gc_increased = [k for k, v in gc_status.items() if v == "GC Increased"]
-    gc_balanced = [k for k, v in gc_status.items() if v == "Balanced"]
-
+    #################################
+    
     # GC lists for plotting
     gc_lists = {k: list(v.values()) for k, v in sorted_clade_gc.items()}
     x_axis = list(file_diff_sorted_file.values())
@@ -2169,6 +2158,7 @@ def gc_graphs(path, saving_location, newick_template):
 #FILE LOCATIONS/VARIABLE INPUTS:##################
 ##################################################
 def main():
+    now_format = '2025-06-02_15-17-28'
     # Define all input/output paths here
     ALI_output_directory = f"{working_directory}/ALI_output_{now_format}"  
     iqtree_output_path = f"{working_directory}/iq_output_{now_format}"
@@ -2183,14 +2173,14 @@ def main():
         os.makedirs(graph_saving_location)
     IQ_csv_location = f'{graph_saving_location}IQTREE_SUCCESS.csv'
 
-    outgroup, newick_template = timed_log(run_AliSIM, 'ALISIM', user_txt_path, working_directory, ALI_output_directory)
-    timed_log(rename_seq_fasta, 'IQTREE rename', ALI_output_directory, iqtree_output_path, iq_model)
-    move_tree_files(iqtree_output_path, newick_treefile_output_path)
-    make_clade_files(fasta_path, clade_output_path, sealion_final_directory)
-    shrink_newick(newick_treefile_output_path, newick_corrected_path, clade_output_path, reroot_directory, outgroup)
-    graph_correct_outputs(newick_corrected_path, correct_newick_string_user_data, tq_dist_path, graph_saving_location, working_directory)
-    gc_graphs(iqtree_output_path, graph_saving_location, newick_template) 
-    run_sea(sealion_container_location, clade_output_path, sealion_runs_dst)
+    #outgroup, newick_template = timed_log(run_AliSIM, 'ALISIM', user_txt_path, working_directory, ALI_output_directory)
+    #timed_log(rename_seq_fasta, 'IQTREE rename', ALI_output_directory, iqtree_output_path, iq_model)
+    #move_tree_files(iqtree_output_path, newick_treefile_output_path)
+    #make_clade_files(fasta_path, clade_output_path, sealion_final_directory)
+    #shrink_newick(newick_treefile_output_path, newick_corrected_path, clade_output_path, reroot_directory, outgroup)
+    #graph_correct_outputs(newick_corrected_path, correct_newick_string_user_data, tq_dist_path, graph_saving_location, working_directory)
+    #gc_graphs(iqtree_output_path, graph_saving_location, newick_template) 
+    #run_sea(sealion_container_location, clade_output_path, sealion_runs_dst)
     best_newick, best_sup, saving_location, newick_strings1, clade_file_location, clade_file_time, tsv_location, unfiltered_topology_supports, newick_strings = diff_visualizations(clade_output_path, graph_saving_location)
     unfiltered_quartet_supports(unfiltered_topology_supports, graph_saving_location)
     IQ_quartet_supports(iqtree_output_path, newick_corrected_path, correct_newick_string_user_data, tq_dist_path, working_directory, graph_saving_location)
@@ -2208,7 +2198,7 @@ def main():
     combined_graph_bar(differences, differencesU, graph_saving_location)
     combined_graph_IQ(differences, diffs, indices, graph_saving_location)
     combined_graph_IQ_Unfil(differencesU, diffs, indices, graph_saving_location)
-    support_b4_af_filtering(results, graph_saving_location, clade_output_path)
+    support_b4_af_filtering(results_filtered, graph_saving_location, clade_output_path)
     support_b4_af(clade_output_path, graph_saving_location)
     reject_GC(clade_output_path, graph_saving_location)
 
