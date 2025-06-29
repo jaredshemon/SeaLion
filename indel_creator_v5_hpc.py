@@ -37,7 +37,7 @@ import plottable
 ######################################################################################################
 #### User Inputs: These are locations where you need to input the depencies for your script ##########
 ###################################################################################################### 
-working_directory = f'/home/jshemonsky/sealion/runs/runs/setup4.2' #This is specified in the bash script, where you'd like all your files to end up
+working_directory = f'/home/jshemonsky/sealion/runs/runs/trs3' #This is specified in the bash script, where you'd like all your files to end up
 how_many_files = 60 #This is how many files you're running 
 correct_newick_string_user_data = "(((A,B),C),D);" #This is the correct newick string
 sealion_container_location = '/share/scientific_bin/singularity/containers/SeaLion_container.sif' #This is where your sealion container is
@@ -459,7 +459,7 @@ def graph_correct_outputs(newick_corrected_path, correct_newick_string_user_data
     plt.ylabel('% Tree Success')
     plt.title('Tree Success by GC Content (IQ-TREE)')
     plt.xticks(x, gc_content_labels)
-    plt.ylim(0,100)
+    plt.ylim(0,101)
     #plt.legend(handles = [custom_legend], loc = 'upper right', fontsize = 'x-small')
 
     
@@ -549,6 +549,8 @@ def parse_gc_content(newick: str):
         clade, freqs = match.groups()
         if freqs == "ACTG":
             clade_gc_status[clade] = "GC Increased"
+        elif freqs == 'A2C2T2G2':
+            clade_gc_status[clade] = "GC Decreased"
         else:
             clade_gc_status[clade] = "Balanced"
     
@@ -643,7 +645,7 @@ def diff_visualizations(clade_output_path, saving_location):
     print(df)
     
     # Plot
-    plt.figure(figsize=(14, 6))
+    plt.figure(figsize=(20, 6))
     plt.bar(labels, supports, color=bar_colors)
     threshold = 0.6
     threshold1 = 0.4
@@ -675,7 +677,8 @@ def diff_visualizations(clade_output_path, saving_location):
     asterisk_handle = mlines.Line2D([], [], color='none', marker='*', markersize=14, 
                                 markerfacecolor='red', label='Unsupported', linestyle='None')
     legend_handles.append(asterisk_handle)
-    plt.legend(handles=legend_handles, bbox_to_anchor=(1, 0.95))
+    plt.legend(handles=legend_handles, loc = 'upper center', bbox_to_anchor=(0.5, -.1), ncol=3)
+
 
     plt.xlabel('Dataset')
     plt.ylabel('Support Value (Max 1)')
@@ -726,7 +729,7 @@ def unfiltered_quartet_supports(unfiltered_topology_supports, saving_location):
     print(df)
 
     # Plot
-    plt.figure(figsize=(14, 6))
+    plt.figure(figsize=(20, 6))
     plt.bar(labels, supports, color=bar_colors)
 
     threshold = 0.6
@@ -756,7 +759,7 @@ def unfiltered_quartet_supports(unfiltered_topology_supports, saving_location):
 
     # Add legend
     legend_handles = [plt.Line2D([0], [0], color=color_map[topo], lw=4, label=topo) for topo in color_map]
-    plt.legend(handles=legend_handles, bbox_to_anchor=(1, 0.95))
+    plt.legend(handles=legend_handles, loc = 'upper center', bbox_to_anchor=(0.5, -.1), ncol=3)
 
     plt.xlabel('Dataset')
     plt.ylabel('Support Value (Max 1)')
@@ -862,7 +865,7 @@ def IQ_quartet_supports(IQ_likeli_loc, newick_corrected_path, user_newick, tq_di
     incorrect_patch = plt.Line2D([0], [0], color='blue', lw=4, label=f'Incorrect: {incorrect_topology}')
     plt.legend(handles=[correct_patch, incorrect_patch], loc='upper right')
 
-    for x in range(10, 60, 10):
+    for x in range(11, 61, 10):
         plt.axvline(x=x - 0.5, color='blue', linestyle='--', linewidth=1)
 
     #Add shaded backgrounds
@@ -885,6 +888,8 @@ def IQ_quartet_supports(IQ_likeli_loc, newick_corrected_path, user_newick, tq_di
 
     plt.savefig(f"{saving_location}/3_IQ_Topology_barchart.svg", dpi=300)
     plt.close()
+    
+    return results
 
 def graph_correct_outputs1(newick_strings1, correct_newick, tq_dist_path, saving_location):
 ###############################################################################################################################################################
@@ -951,10 +956,11 @@ def graph_correct_outputs1(newick_strings1, correct_newick, tq_dist_path, saving
     plt.title('Tree Success by GC Content (SeaLion)')
     plt.xticks(x, gc_content_labels)
     plt.legend(handles=[custom_legend], loc='upper right', fontsize='x-small')
-    plt.ylim(0,100)
+    plt.ylim(0,101)
+    
+    plt.savefig((f'{saving_location}/4_Tree_Success_GC_Content_SeaLion.svg'))
     csv_path = os.path.join(f'{saving_location}/4_Table_Tree_Success_GC_Content_SeaLion.csv')
     plt.show()
-
 
     return csv_path, results
 
@@ -1026,7 +1032,7 @@ def graph_correct_outputs2(newick_strings, correct_newick, tq_dist_path, saving_
     plt.title('Tree Success by GC Content (SeaLion)')
     plt.xticks(x, gc_content_labels)
     plt.legend(handles=[custom_legend], loc='upper right', fontsize='x-small')
-    plt.ylim(0,100)
+    plt.ylim(0,101)
     plt.savefig((f'{saving_location}/5_RISKDIST_Tree_Success_GC_Content_SeaLion.svg'))
     csv_path1 = os.path.join(f'{saving_location}/5_Table_RISKDIST_Tree_Success_GC_Content_SeaLion.csv')
 
@@ -1103,7 +1109,7 @@ def graph_correct_outputsIQ(newick_corrected_path, correct_newick_string_user_da
     plt.title('Tree Success by GC Content (IQ-TREE)')
     plt.xticks(x, gc_content_labels)
     plt.legend(handles=[custom_legend], loc='upper right', fontsize='x-small')
-    plt.ylim(0,100)
+    plt.ylim(0,101)
     plt.savefig(f'{saving_location}/6_IQTREE_Success_GC_Content.svg', format='svg')
     plt.show()
     
@@ -1143,7 +1149,7 @@ def correct_incorrect_rejected_filtered(results_filtered, rejected_focused, savi
     
     plt.xlabel('GC Content')
     plt.ylabel('% Tree Success')
-    plt.ylim(0,100)
+    plt.ylim(0,101)
     plt.title('Tree Success, Rejection, and Failure (SeaLion)')
     plt.xticks(x, gc_content_labels)
     plt.legend()
@@ -1180,7 +1186,7 @@ def overlay_correct(csv_path1, IQ_csv_location, saving_location):
     plt.title('Overlay of Correct Topology Matches by GC Content (Unfiltered)')
     plt.xticks(ticks=range(6), labels=[f"{1 + i * 1}" for i in range(6)])
     plt.legend()
-    plt.ylim(0,100)
+    plt.ylim(0,101)
     plt.tight_layout()
 
     # Save and show
@@ -1218,7 +1224,7 @@ def overlay_correct2(csv_path2, IQ_csv_location, saving_location):
     plt.title('Overlay of Correct Topology Matches by GC Content (RISK+DIST)')
     plt.xticks(ticks=range(6), labels=[f"{1 + i * 1}" for i in range(6)])
     plt.legend()
-    plt.ylim(0,100)
+    plt.ylim(0,101)
     plt.tight_layout()
 
     # Save and show
@@ -1297,15 +1303,15 @@ def diff_graphs(clade_output_path, saving_location):
     incomplete_x = [i+1 for i,v in enumerate(differences) if v == 0]
     incomplete_y = [0] * len(incomplete_x)
     plt.scatter(incomplete_x, incomplete_y, marker='*', color='black', s=180, label='Fully Rejected')
-    plt.axhline(y=.2, color='blue', linestyle=':', linewidth=1, label=f'High Conflict Below')
+    plt.axhline(y=.3, color='blue', linestyle=':', linewidth=1, label=f'High Conflict Below')
 
 
         # Add dashed lines
-    for x in range(10, 60, 10):
+    for x in range(11, 61, 10):
         plt.axvline(x=x - 0.5, color='red', linestyle='--', linewidth=1)
 
     #Add shaded backgrounds
-    for i in range(0, 60, 20):  # every other bin
+    for i in range(1, 61, 20):  # every other bin
         plt.axvspan(i - 0.5, i + 9.5, color='gray', alpha=0.1)
 
     #GC content annotations
@@ -1336,7 +1342,7 @@ def diff_graphs1(differencesU, saving_location):
     y_axis = range(1, 61)
     plt.figure(figsize=(16, 5))
     plt.plot(y_axis, differencesU, marker='+', linestyle='--', color='red', label='Sealion Support Δ' )
-    plt.axhline(y=.2, color='blue', linestyle=':', linewidth=1, label=f'High Conflict Below')
+    plt.axhline(y=.3, color='blue', linestyle=':', linewidth=1, label=f'High Conflict Below')
     
     df = pd.DataFrame({
         'Dataset #': y_axis,
@@ -1348,11 +1354,11 @@ def diff_graphs1(differencesU, saving_location):
     print(df)
     
     # Add dashed lines
-    for x in range(10, 60, 10):
+    for x in range(11, 61, 10):
         plt.axvline(x=x - 0.5, color='lightcoral', linestyle='--', linewidth=1)
 
     #Add shaded backgrounds
-    for i in range(0, 60, 20):  # every other bin
+    for i in range(1, 61, 20):  # every other bin
         plt.axvspan(i - 0.5, i + 9.5, color='gray', alpha=0.1)
 
     #GC content annotations
@@ -1398,7 +1404,7 @@ def diff_tree_correct_v_incorrect(differencesU, results, clade_output_path, savi
                         except Exception as e:
                             pass
 
-    plt.figure(figsize=(18, 5))
+    plt.figure(figsize=(20, 6))
     x_axis = range(1,61)
     y_axis = [float(i) for i in differencesU]
     for x, res  in zip(x_axis, results):
@@ -1417,11 +1423,11 @@ def diff_tree_correct_v_incorrect(differencesU, results, clade_output_path, savi
     print(df)
 
     # Add dashed lines
-    for x in range(10, 60, 10):
+    for x in range(11, 61, 10):
         plt.axvline(x=x - 0.5, color='red', linestyle='--', linewidth=1)
 
     #Add shaded backgrounds
-    for i in range(0, 60, 20):  # every other bin
+    for i in range(1, 61, 20):  # every other bin
         plt.axvspan(i - 0.5, i + 9.5, color='gray', alpha=0.1)
 
     #GC content annotations
@@ -1429,29 +1435,105 @@ def diff_tree_correct_v_incorrect(differencesU, results, clade_output_path, savi
     for i, gc in enumerate(gc_labels):
         plt.text(i * 10 + 5, .95, f'{gc}', ha='center', va='top', fontsize=9, transform=plt.gca().transData)
     
-    threshold = .2
+    threshold = .3
     plt.axhline(y=threshold, color='lightcoral', linestyle=':', linewidth=1)
-    plt.text(61, 0.1, 'High Conflict', color='black', fontsize=10, va='top')
+    plt.text(61, 0.15, 'High Conflict', color='black', fontsize=11, va='top')
 
 
     plt.xlabel('Dataset Index')
     plt.ylabel('Δ of Support Values')
-    plt.title('Δ Correct Topology v. Incorrect Topology')
+    plt.title('Δ Correct Topology v. Incorrect Topology (Unfiltered)')
     plt.xticks(ticks=list(x_axis), labels=[str(i) for i in x_axis], rotation=45)
     plt.ylim(0,1)
-    legend_patch = mpatches.Patch(color='skyblue', label='Correct Topology Δ')
-    legend_patch1 = (mpatches.Patch(color='seagreen', label='Incorrect Topology Δ'))
-    plt.legend(handles=[legend_patch, legend_patch1])  
+    legend_patch = mpatches.Patch(color='skyblue', label='Correct Topology')
+    legend_patch1 = (mpatches.Patch(color='seagreen', label='Incorrect Topology'))
+    plt.legend(handles=[legend_patch, legend_patch1], loc = 'upper center', bbox_to_anchor=(0.5, -.1), ncol=3)
     plt.tight_layout()
 
     # Save and show
     plt.savefig(f'{saving_location}/12_Δ_Correct_Topology_v._Incorrect_Topology.svg', dpi=300)
     plt.show()
 
+def diff_tree_correct_v_incorrect_filtered(differences, results, clade_output_path, saving_location):
+############################################################################################
+### Shows the delta when the tree is correct v. incorrect ONLY POSITIVE ####################
+############################################################################################
+    for j in range(1,61):
+        tsv_location = f'{clade_output_path}/clade_file_{j}.fas/testresult_clade_file_{j}/TSV'
+        newicks_scores = {}
+        match = re.search(r'testresult_clade_file_\d+', tsv_location)
+        if match:
+                clade_file_location = match.group()
+        for data_files in os.listdir(tsv_location):
+            if data_files.startswith('MQ1'):
+                data_file = data_files
+                median_file = os.path.join(tsv_location, data_file)
+                with open(median_file, 'r') as f:
+                    for line in f:
+                        line = line.strip().split()
+                        try:
+                            if 'median' in line:
+                                newicks_scores[line[1]] = line[3]
+                                sorted_dict = dict(sorted(newicks_scores.items(), key = lambda item: item[1], reverse = True)) ###This is just coding for fun I guess, this whole block is useless
+                                #print(sort) #This is unfiltered data
+                        except Exception as e:
+                            pass
+
+    plt.figure(figsize=(20, 6))
+    x_axis = range(1,61)
+    y_axis = [float(i) for i in differences]
+    for x, res  in zip(x_axis, results):
+        if res == 0:
+            plt.bar(x, y_axis[x-1], color = 'skyblue', label = 'Correct Topology Δ' )
+        else:
+            plt.bar(x, y_axis[x-1], color = 'seagreen', label = 'Incorrect Topology Δ')
+
+    df = pd.DataFrame({
+        'Dataset #': y_axis,
+        'Δ Best Top Score v. 2nd Best (RISK + DIST)': differences
+    })
+    
+    csv_path = os.path.join(saving_location, f"25_Table_Δ_Correct_Topology_v._Incorrect_Topology_Filtered.csv")
+    df.to_csv(csv_path, index=False)
+    print(df)
+
+    # Add dashed lines
+    for x in range(11, 61, 10):
+        plt.axvline(x=x - 0.5, color='red', linestyle='--', linewidth=1)
+
+    #Add shaded backgrounds
+    for i in range(1, 61, 20):  # every other bin
+        plt.axvspan(i - 0.5, i + 9.5, color='gray', alpha=0.1)
+
+    #GC content annotations
+    gc_labels = [1, 2, 3, 4, 5, 6]
+    for i, gc in enumerate(gc_labels):
+        plt.text(i * 10 + 5, .95, f'{gc}', ha='center', va='top', fontsize=9, transform=plt.gca().transData)
+    
+    threshold = .3
+    plt.axhline(y=threshold, color='lightcoral', linestyle=':', linewidth=1)
+    plt.text(61, 0.15, 'High Conflict', color='black', fontsize=11, va='top')
+
+
+    plt.xlabel('Dataset Index')
+    plt.ylabel('Δ of Support Values')
+    plt.title('Δ Correct Topology v. Incorrect Topology (RISK + DIST)')
+    plt.xticks(ticks=list(x_axis), labels=[str(i) for i in x_axis], rotation=45)
+    plt.ylim(0,1)
+    legend_patch = mpatches.Patch(color='skyblue', label='Correct Topology')
+    legend_patch1 = (mpatches.Patch(color='seagreen', label='Incorrect Topology'))
+    plt.legend(handles=[legend_patch, legend_patch1], loc = 'upper center', bbox_to_anchor=(0.5, -.1), ncol=3)
+    plt.tight_layout()
+
+    # Save and show
+    plt.savefig(f'{saving_location}/25_Δ_Correct_Topology_v._Incorrect_Topology.svg', dpi=300)
+    plt.show()
+
 def diff_graphs2(IQ_likeli_loc, saving_location, differences):
 ########################################################################################################################################################
 ### This graphs the difference between the best and second best tree topologys from IQTREE indicated by log-likelihood        ##########################
 ########################################################################################################################################################
+
     for file in os.listdir(IQ_likeli_loc):
         if file.startswith('fastaout') and file.endswith('ckp.gz'):
             os.chdir(IQ_likeli_loc)
@@ -1494,11 +1576,11 @@ def diff_graphs2(IQ_likeli_loc, saving_location, differences):
     plt.plot(indices, diffs, marker='+', linestyle='--', color='red', label='IQTREE ΔLnl ' )
 
     # Add dashed lines
-    for x in range(10, 60, 10):
+    for x in range(11, 61, 10):
         plt.axvline(x=x - 0.5, color='red', linestyle='--', linewidth=1)
 
     #Add shaded backgrounds
-    for i in range(0, 60, 20):  # every other bin
+    for i in range(1, 61, 20):  # every other bin
         plt.axvspan(i - 0.5, i + 9.5, color='gray', alpha=0.1)
 
     #GC content annotations
@@ -1509,7 +1591,7 @@ def diff_graphs2(IQ_likeli_loc, saving_location, differences):
     # Highlight significant differences
     threshold = 1e-1
     significant = diffs >= threshold
-    plt.axhline(y=threshold, color='lightcoral', linestyle=':', linewidth=1, label=f'Δ ≥ {threshold}')
+    #plt.axhline(y=threshold, color='lightcoral', linestyle=':', linewidth=1, label=f'Δ ≥ {threshold}')
 
     plt.xlabel('Dataset')
     plt.ylabel('Δ Log-Likelihood (Best - 2nd Best)')
@@ -1520,6 +1602,78 @@ def diff_graphs2(IQ_likeli_loc, saving_location, differences):
     plt.legend()
     #plt.tight_layout()
     plt.savefig(f'{saving_location}/13_IQ_best_second_Δ.svg', dpi=300)
+    plt.show()
+
+    return diffs, indices
+
+def diff_graphs3(IQ_likeli_loc, saving_location, differences, results_IQ):
+########################################################################################################################################################
+### This graphs the difference between the best and second best tree topologys from IQTREE indicated by log-likelihood        ##########################
+########################################################################################################################################################
+    results = results_IQ
+    for file in os.listdir(IQ_likeli_loc):
+        if file.startswith('fastaout') and file.endswith('ckp.gz'):
+            os.chdir(IQ_likeli_loc)
+            os.system(f'gunzip {file}')
+
+    diff_newick_scores = []
+    for file in os.listdir(IQ_likeli_loc):
+        if file.startswith('fastaout') and file.endswith('ckp'): 
+            file = os.path.join(IQ_likeli_loc, file)
+            with open(file, 'r') as f:
+                lines = f.read()
+                log_likelihoods = re.findall(r'\d+:\s+(-\d+\.\d+)', lines)
+                top_two = sorted(log_likelihoods, reverse = True)[:2]  
+                try:
+                    diff = (float(top_two[0]) - float(top_two[1]))*(-1)
+                    diff_newick_scores.append(diff)
+                except Exception as e:
+                    print(f"Only 1 possibility")   
+    
+    y_1 = range(len(differences))
+    y_2 = range(len(diff_newick_scores))
+    x_1 = differences
+    x_2 = diff_newick_scores
+
+    # Convert to numpy array for easier processing
+    diffs = np.array(diff_newick_scores)
+    indices = np.arange(1, len(diffs) + 1)
+    
+    # Plot with log scaling to highlight small differences
+    plt.figure(figsize=(16, 6))
+    plt.bar(indices, diffs, color='orange', label='IQTREE ΔLnl ' )
+
+    for x, rej in enumerate(results):
+        if rej == 1:
+            plt.bar(x+1, diffs[x], color='blue')
+          
+    # Add dashed lines
+    for x in range(11, 61, 10):
+        plt.axvline(x=x - 0.5, color='red', linestyle='--', linewidth=1)
+
+    #Add shaded backgrounds
+    for i in range(1, 61, 20):  # every other bin
+        plt.axvspan(i - 0.5, i + 9.5, color='gray', alpha=0.1)
+
+    #GC content annotations
+    gc_labels = [1, 2, 3, 4, 5, 6]
+    for i, gc in enumerate(gc_labels):
+        plt.text(i * 10 + 5, 1e-1, f'{gc}', ha='center', va='top', fontsize=9, transform=plt.gca().transData)
+    
+    # Highlight significant differences
+    threshold = 1e-1
+    significant = diffs >= threshold
+    #plt.axhline(y=threshold, color='lightcoral', linestyle=':', linewidth=1, label=f'Δ ≥ {threshold}')
+
+    plt.xlabel('Dataset')
+    plt.ylabel('Δ Log-Likelihood (Best - 2nd Best)')
+    plt.title('ΔLnl (IQ-TREE)')
+    plt.xticks(indices, rotation=90)
+    plt.yscale('log')  # log scale to emphasize small differences
+    plt.ylim(bottom=1e-6, top=max(diffs)*1.5)
+    plt.legend()
+    #plt.tight_layout()
+    plt.savefig(f'{saving_location}/24_Bar_IQ_best_second_Δ.svg', dpi=300)
     plt.show()
 
     return diffs, indices
@@ -1545,12 +1699,12 @@ def combined_graph(differences, differencesU, saving_location):
     incomplete_x = [i + 1 for i, v in enumerate(differences) if v == 0]
     incomplete_y = [0] * len(incomplete_x)
     ax1.scatter(incomplete_x, incomplete_y, marker='.', color='darkgoldenrod', s=180, label='Fully Rejected')
-    plt.axhline(y=.2, color='mediumvioletred', linestyle=':', linewidth=1, label=f'High Conflict Below')
+    plt.axhline(y=.3, color='mediumvioletred', linestyle=':', linewidth=1, label=f'High Conflict Below')
 
     # Add dashed lines and shaded regions for filtered data
-    for x in range(10, 60, 10):
+    for x in range(11, 61, 10):
         ax1.axvline(x=x - 0.5, color='darkgoldenrod', linestyle='--', linewidth=1)
-    for i in range(0, 60, 20):  # Shaded regions
+    for i in range(1, 61, 20):  # Shaded regions
         ax1.axvspan(i - 0.5, i + 9.5, color='gray', alpha=0.1)
 
     # GC content annotations
@@ -1592,19 +1746,18 @@ def combined_graph_bar(differences, differencesU, saving_location):
 #################################################################################################
 
     x_axis = np.arange(1, 61)  # Shared x-axis for both datasets
-    bar_width = 0.4  # Width of each bar
-
+    bar_width = 0.3  # Width of each bar
     # Create the figure and axis
-    fig, ax1 = plt.subplots(figsize=(16, 6))
+    fig, ax1 = plt.subplots(figsize=(20, 6))
 
     # First dataset (filtered data) on the left y-axis
     x_axis = x_axis - bar_width / 2
-    ax1.bar(x_axis, differences, width=bar_width, color='darkgoldenrod', label='Filtered Δ Support')
+    ax1.bar(x_axis+bar_width/2, differences, width=bar_width, color='darkgoldenrod', label='Filtered Δ Support')
     ax1.set_xlabel('Dataset')
     ax1.set_ylabel('Support Δ (Filtered)', color='darkgoldenrod')
     ax1.tick_params(axis='y', labelcolor='darkgoldenrod')
-    plt.axhline(y=.2, color='green', linestyle=':', linewidth=1, label=f'Good Support')
-    plt.text(61, 0.1, 'High Conflict', color='black', fontsize=10, va='top')
+    plt.axhline(y=.3, color='green', linestyle=':', linewidth=1, label=f'Good Support')
+    plt.text(61, 0.15, 'High Conflict', color='black', fontsize=11, va='top')
 
     for x in range(1, 60, 10):
         plt.axvline(x=x - 0.5, color='darkgoldenrod', linestyle='--', linewidth=1)
@@ -1614,16 +1767,16 @@ def combined_graph_bar(differences, differencesU, saving_location):
 
     gc_labels = [1, 2, 3, 4, 5, 6]
     for i, gc in enumerate(gc_labels):
-        plt.text(i * 10 + 5, .88, f'{gc}', ha='center', va='top', fontsize=9, transform=plt.gca().transData)
+        plt.text(i * 10 + 5, .98, f'{gc}', ha='center', va='top', fontsize=9, transform=plt.gca().transData)
 
     # Plot the unfiltered dataset (differencesU) as bars on the right y-axis
     ax2 = ax1.twinx()
-    ax2.bar(x_axis, differencesU, width=bar_width, color='seagreen', label='Unfiltered Δ Support')
+    ax2.bar(x_axis-bar_width/2, differencesU, width=bar_width, color='seagreen', label='Unfiltered Δ Support')
     ax2.set_ylabel('Support Δ (Unfiltered)', color='seagreen')
     ax2.tick_params(axis='y', labelcolor='seagreen')
 
     # Add legends for both datasets
-    fig.legend(loc='upper right', bbox_to_anchor=(.98, .9), bbox_transform=ax1.transAxes)
+    fig.legend(loc='upper center', bbox_to_anchor=(0.5, -0.08), ncol=3, frameon=False, bbox_transform=ax1.transAxes)
 
     # Title and layout
     plt.title('Comparison of Filtered and Unfiltered Δ Support')
@@ -1812,11 +1965,11 @@ def support_b4_af_filtering(clade_output_path, results_filtered, saving_location
     plt.bar(x_axis, y_1, color=colors, edgecolor='black', label='Difference before v. after filtering')
     label_added = False  # Flag to add the label only once
 
-    for x in range(10, 60, 10):
+    for x in range(11, 61, 10):
         plt.axvline(x=x - 0.5, color='blue', linestyle='--', linewidth=1)
 
     #Add shaded backgrounds
-    for i in range(0, 60, 20):  # every other bin
+    for i in range(1, 61, 20):  # every other bin
         plt.axvspan(i - 0.5, i + 9.5, color='gray', alpha=0.1)
 
     #GC content annotations
@@ -1953,24 +2106,24 @@ def reject_GC(clade_output_path, saving_location):
         'Dataset #': x_axis,
         '% Rejected Topologies': y_axis,
     })
-    csv_path = os.path.join(saving_location, f"20_SeaLion_correct_topology_b4_after_filtering.csv")
+    csv_path = os.path.join(saving_location, f"20_Table_Bar_SeaLion_percent_rejected.csv")
     df.to_csv(csv_path, index=False) 
     print(df)
     plt.bar(x_axis, y_axis, color='seagreen', edgecolor='black', label='Perecent of Topologies Rejected')
 
 
     # Add dashed lines
-    for x in range(10, 60, 10):
+    for x in range(11, 61, 10):
         plt.axvline(x=x - 0.5, color='blue', linestyle='--', linewidth=1)
 
     #Add shaded backgrounds
-    for i in range(0, 60, 20):  # every other bin
+    for i in range(1, 61, 20):  # every other bin
         plt.axvspan(i - 0.5, i + 9.5, color='gray', alpha=0.1)
 
     # Add labels, title, and legend
     plt.xlabel('Dataset')
     plt.ylabel('% Rejected')
-    plt.title('% of SeaLions Rejected Topologies per dataset')
+    plt.title('% of SeaLions Rejected Topologies per Dataset')
     plt.ylim(0, 100)
     plt.xticks(ticks=list(x_axis), labels=[str(i) for i in x_axis], rotation=45)
     plt.grid(axis='y', linestyle='--', alpha=0.7)
@@ -1979,7 +2132,7 @@ def reject_GC(clade_output_path, saving_location):
     plt.savefig(f'{saving_location}/20_Bar_SeaLion_percent_rejected.svg', dpi=300)
     plt.show()
 
-def gc_graphs(path, saving_location, newick_template):
+def gc_graphs_multi_models(path, saving_location, newick_template):
 ##############################################################################################################################################
 ### This graphs the medians of Clade A, B, C, D. Averages the medians to get a combined graph of GC increasing sequences/GC balanced #########   
 ##############################################################################################################################################
@@ -2012,6 +2165,7 @@ def gc_graphs(path, saving_location, newick_template):
     file_diff = {}
     file_bal = {}
     file_inc = {}
+    file_dec = {}
     clade_gc = {k: {} for k in 'ABCD'}
     
     prefixes = ['A', 'B', 'C', 'D']
@@ -2021,6 +2175,7 @@ def gc_graphs(path, saving_location, newick_template):
     gc_status = parse_gc_content(newick_string)
     gc_increased = [k for k, v in gc_status.items() if v == "GC Increased"]
     gc_balanced = [k for k, v in gc_status.items() if v == "Balanced"]
+    gc_decreased = [k for k, v in gc_status.items() if v == "GC Decreased"]
 
     for fname in os.listdir(path):
         if fname.endswith('fa'):
@@ -2049,12 +2204,14 @@ def gc_graphs(path, saving_location, newick_template):
             if all(prefix in medians for prefix in 'ABCD'):
                 A, B, C, D = [round(medians[p], 3) for p in 'ABCD']
                 GCbal = mean_gc(medians, gc_balanced)
-                GCinc = mean_gc(medians, gc_increased) ####These two variables switch if you switch the sequences that are impacted
+                GCinc = mean_gc(medians, gc_increased)####These two variables switch if you switch the sequences that are impacted
+                GCdec = mean_gc(medians, gc_decreased)
                 GCdiff = round((GCinc - GCbal), 3) #if the graphs are messed up you can edit them here
 
                 file_diff[filename_key] = GCdiff
                 file_bal[filename_key] = GCbal
                 file_inc[filename_key] = GCinc
+                file_dec[filename_key] = GCdec
                 clade_gc['A'][filename_key] = A
                 clade_gc['B'][filename_key] = B
                 clade_gc['C'][filename_key] = C
@@ -2065,6 +2222,7 @@ def gc_graphs(path, saving_location, newick_template):
 
     # Sorted outputs
     file_diff_sorted_file = sort_dict_by_filename(file_diff)
+    file_dec_sorted_file = sort_dict_by_filename(file_dec)
     file_bal_sorted_file = sort_dict_by_filename(file_bal)
     file_inc_sorted_file = sort_dict_by_filename(file_inc)
     sorted_clade_gc = {k: sort_dict_by_filename(v) for k, v in clade_gc.items()}
@@ -2080,6 +2238,7 @@ def gc_graphs(path, saving_location, newick_template):
         diff = file_diff_sorted_file.get(filename, 'N/A')
         bal = file_bal_sorted_file.get(filename, 'N/A')
         inc = file_inc_sorted_file.get(filename, 'N/A')
+        dec = file_dec_sorted_file.get(filename, 'N/A')
         a = sorted_clade_gc['A'].get(filename, 'N/A')
         b = sorted_clade_gc['B'].get(filename, 'N/A')
         c = sorted_clade_gc['C'].get(filename, 'N/A')
@@ -2089,8 +2248,9 @@ def gc_graphs(path, saving_location, newick_template):
             'GC Bin': bin_label,
             'Dataset File': filename,
             'Δ GC': diff,
-            f'GC Increasing ({", ".join(gc_increased)}) Clades': inc,
+            f'GC Increased ({", ".join(gc_increased)}) Clades': inc,
             f'GC Balanced ({", ".join(gc_balanced)}) Clades': bal,
+            f'GC Decreased ({", ".join(gc_balanced)}) Clades': dec,
             'Clade A': a,
             'Clade B': b,
             'Clade C': c,
@@ -2109,6 +2269,7 @@ def gc_graphs(path, saving_location, newick_template):
     x_axis = list(file_diff_sorted_file.values())
     x_axis_inc = list(file_inc_sorted_file.values())
     x_axis_bal = list(file_bal_sorted_file.values())
+    x_axis_dec = list(file_dec_sorted_file.values())
     y_axis = range(len(x_axis))
     def plot_line(y, lines, title, ylabel, filename, label_height, ylim=None):
         plt.figure(figsize=(16, 6))
@@ -2153,9 +2314,10 @@ def gc_graphs(path, saving_location, newick_template):
     plot_line(
         y_axis,
         [(x_axis_inc, f'GC Increased Clades ({", ".join(gc_increased)})', 'orange'),
-        (x_axis_bal, f'GC Balanced Clades ({", ".join(gc_balanced)})', 'green')],
+        (x_axis_bal, f'GC Balanced Clades ({", ".join(gc_balanced)})', 'green'),
+        *((x_axis_dec, f'GC Decreased Clades ({", ".join(gc_decreased)})', 'blue')if gc_decreased else [])],
         'GC Content Distribution Across Combined Clades with Bin Highlighting',
-        'GC Increased and Balanced',
+        'GC Increased and Decreased',
         f'{saving_location}/22_GC_Increase_v._Balanced_Combined.svg',
         label_height=79,
         ylim=(20, 80)
@@ -2164,11 +2326,11 @@ def gc_graphs(path, saving_location, newick_template):
     plot_line(
         y_axis,
         [(x_axis, f'Δ GC Content ({", ".join(gc_balanced)} vs {", ".join(gc_increased)})', 'blue')],
-        'Δ GC Content in the Median of Clades {}/{} vs {}/{}'.format(*gc_balanced, *gc_increased),
+        'Δ GC Content in the Median of Clades {}/{} vs {}/{}'.format(*gc_balanced, *gc_increased, *gc_decreased),
         f'Δ GC Content ({", ".join(gc_balanced)} vs {", ".join(gc_increased)})',
         f'{saving_location}/23_Δ_GC_per_Dataset.svg',
-        label_height= -44,
-        ylim = (10, -45)
+        label_height= 24,
+        ylim = (-10, 25)
     )
  
  
@@ -2176,7 +2338,7 @@ def gc_graphs(path, saving_location, newick_template):
 #FILE LOCATIONS/VARIABLE INPUTS:##################
 ##################################################
 def main():
-    now_format = '2025-06-20_17-39-03' 
+    now_format = '2025-06-03_20-55-25' 
     # Define all input/output paths here
     ALI_output_directory = f"{working_directory}/ALI_output_{now_format}"  
     iqtree_output_path = f"{working_directory}/iq_output_{now_format}"
@@ -2191,36 +2353,38 @@ def main():
         os.makedirs(graph_saving_location)
     IQ_csv_location = f'{graph_saving_location}IQTREE_SUCCESS.csv'
     
-    newick_template = '((((A1:0.01,A2:0.01,A3:0.01,A4:0.01,A5:0.01,A6:0.01,A7:0.01,A8:0.01,A9:0.01,A10:0.01):.39[&model=F81+F{A1C1T1G1}+I{I1}],(B1:0.01,B2:0.01,B3:0.01,B4:0.01,B5:0.01,B6:0.01,B7:0.01,B8:0.01,B9:0.01,B10:0.01):.39[&model=F81+F{A1C1T1G1}+I{I1}]):0.05,(C1:0.01,C2:0.01,C3:0.01,C4:0.01,C5:0.01,C6:0.01,C7:0.01,C8:0.01,C9:0.01,C10:0.01):.44[&model=F81+F{ACTG}+I{I1}]):0.05,(D1:0.01,D2:0.01,D3:0.01,D4:0.01,D5:0.01,D6:0.01,D7:0.01,D8:0.01,D9:0.01,D10:0.01):.49[&model=F81+F{ACTG}+I{I1}]);'
+    newick_template = '((((A1:0.01,A2:0.01,A3:0.01,A4:0.01,A5:0.01,A6:0.01,A7:0.01,A8:0.01,A9:0.01,A10:0.01):.39[&model=F81+F{ACTG}+I{I1}],(B1:0.01,B2:0.01,B3:0.01,B4:0.01,B5:0.01,B6:0.01,B7:0.01,B8:0.01,B9:0.01,B10:0.01):.39[&model=F81+F{A1C1T1G1}+I{I1}]):0.05,(C1:0.01,C2:0.01,C3:0.01,C4:0.01,C5:0.01,C6:0.01,C7:0.01,C8:0.01,C9:0.01,C10:0.01):.44[&model=F81+F{A1C1T1G1}+I{I1}]):0.05,(D1:0.01,D2:0.01,D3:0.01,D4:0.01,D5:0.01,D6:0.01,D7:0.01,D8:0.01,D9:0.01,D10:0.01):.49[&model=F81+F{ACTG}+I{I1}]);'
 
     #outgroup, newick_template = timed_log(run_AliSIM, 'ALISIM', user_txt_path, working_directory, ALI_output_directory)
     #timed_log(rename_seq_fasta, 'IQTREE rename', ALI_output_directory, iqtree_output_path, iq_model)
     #move_tree_files(iqtree_output_path, newick_treefile_output_path)
     #make_clade_files(fasta_path, clade_output_path, sealion_final_directory)
     #shrink_newick(newick_treefile_output_path, newick_corrected_path, clade_output_path, reroot_directory, outgroup)
-    graph_correct_outputs(newick_corrected_path, correct_newick_string_user_data, tq_dist_path, graph_saving_location, working_directory)
-    gc_graphs(iqtree_output_path, graph_saving_location, newick_template) 
+    #graph_correct_outputs(newick_corrected_path, correct_newick_string_user_data, tq_dist_path, graph_saving_location, working_directory)
+    gc_graphs_multi_models(iqtree_output_path, graph_saving_location, newick_template) 
     #run_sea(sealion_container_location, clade_output_path, sealion_runs_dst)
-    best_newick, best_sup, saving_location, newick_strings1, clade_file_location, clade_file_time, tsv_location, unfiltered_topology_supports, newick_strings = diff_visualizations(clade_output_path, graph_saving_location)
-    unfiltered_quartet_supports(unfiltered_topology_supports, graph_saving_location)
-    IQ_quartet_supports(iqtree_output_path, newick_corrected_path, correct_newick_string_user_data, tq_dist_path, working_directory, graph_saving_location)
-    csv_path1, results = graph_correct_outputs1(newick_strings1, correct_newick_string_user_data, tq_dist_path, graph_saving_location)
-    csv_path2, results_filtered, rejected_focused = graph_correct_outputs2(newick_strings, correct_newick_string_user_data, tq_dist_path, graph_saving_location)
-    graph_correct_outputsIQ(newick_corrected_path, correct_newick_string_user_data, tq_dist_path, graph_saving_location, working_directory)#same as the graph_correct_outputs function
-    correct_incorrect_rejected_filtered(results_filtered, rejected_focused, graph_saving_location)
-    x1, y1, x2, y2 = overlay_correct(csv_path1, IQ_csv_location, graph_saving_location)
-    x1, y1, x2, y2 = overlay_correct2(csv_path2, IQ_csv_location, graph_saving_location)
-    differences, differencesU = diff_graphs(clade_output_path, graph_saving_location)
-    diff_graphs1(differencesU, graph_saving_location)
-    diff_tree_correct_v_incorrect(differencesU, results, clade_output_path, graph_saving_location)
-    diffs, indices = diff_graphs2(iqtree_output_path, graph_saving_location, differences)
-    combined_graph(differences, differencesU, graph_saving_location)
-    combined_graph_bar(differences, differencesU, graph_saving_location)
-    combined_graph_IQ(differences, diffs, indices, graph_saving_location)
-    combined_graph_IQ_Unfil(differencesU, diffs, indices, graph_saving_location)
-    support_b4_af_filtering(clade_output_path, results_filtered, graph_saving_location)
-    support_b4_af(clade_output_path, graph_saving_location)
-    reject_GC(clade_output_path, graph_saving_location)
+    #best_newick, best_sup, saving_location, newick_strings1, clade_file_location, clade_file_time, tsv_location, unfiltered_topology_supports, newick_strings = diff_visualizations(clade_output_path, graph_saving_location)
+    #unfiltered_quartet_supports(unfiltered_topology_supports, graph_saving_location)
+    #results_IQ = IQ_quartet_supports(iqtree_output_path, newick_corrected_path, correct_newick_string_user_data, tq_dist_path, working_directory, graph_saving_location)
+    #csv_path1, results = graph_correct_outputs1(newick_strings1, correct_newick_string_user_data, tq_dist_path, graph_saving_location)
+    #csv_path2, results_filtered, rejected_focused = graph_correct_outputs2(newick_strings, correct_newick_string_user_data, tq_dist_path, graph_saving_location)
+    #graph_correct_outputsIQ(newick_corrected_path, correct_newick_string_user_data, tq_dist_path, graph_saving_location, working_directory)#same as the graph_correct_outputs function
+    #correct_incorrect_rejected_filtered(results_filtered, rejected_focused, graph_saving_location)
+    #x1, y1, x2, y2 = overlay_correct(csv_path1, IQ_csv_location, graph_saving_location)
+    #x1, y1, x2, y2 = overlay_correct2(csv_path2, IQ_csv_location, graph_saving_location)
+    #differences, differencesU = diff_graphs(clade_output_path, graph_saving_location)
+    #diff_graphs1(differencesU, graph_saving_location)
+    #diff_tree_correct_v_incorrect(differencesU, results, clade_output_path, graph_saving_location)
+    #diff_tree_correct_v_incorrect_filtered(differences, results_filtered, clade_output_path, graph_saving_location)
+    #diffs, indices = diff_graphs2(iqtree_output_path, graph_saving_location, differences)
+    #diffs, indices = diff_graphs3(iqtree_output_path, graph_saving_location, differences, results_IQ)
+    #combined_graph(differences, differencesU, graph_saving_location)
+    #combined_graph_bar(differences, differencesU, graph_saving_location)
+    #combined_graph_IQ(differences, diffs, indices, graph_saving_location)
+    #combined_graph_IQ_Unfil(differencesU, diffs, indices, graph_saving_location)
+    ##support_b4_af_filtering(clade_output_path, results_filtered, graph_saving_location)
+    #support_b4_af(clade_output_path, graph_saving_location)
+    #reject_GC(clade_output_path, graph_saving_location)
 
 if __name__ == "__main__":
     main()   
