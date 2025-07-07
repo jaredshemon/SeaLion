@@ -2579,7 +2579,8 @@ def main():
     if not os.path.exists(graph_saving_location):
         os.makedirs(graph_saving_location)
     IQ_csv_location = f'{graph_saving_location}IQTREE_SUCCESS.csv'
-    
+
+
     #newick_template = '((((A1:0.01,A2:0.01,A3:0.01,A4:0.01,A5:0.01,A6:0.01,A7:0.01,A8:0.01,A9:0.01,A10:0.01):.39[&model=F81+F{ACTG}+I{I1}],(B1:0.01,B2:0.01,B3:0.01,B4:0.01,B5:0.01,B6:0.01,B7:0.01,B8:0.01,B9:0.01,B10:0.01):.39[&model=F81+F{A2C2T2G2}+I{I1}]):0.05,(C1:0.01,C2:0.01,C3:0.01,C4:0.01,C5:0.01,C6:0.01,C7:0.01,C8:0.01,C9:0.01,C10:0.01):.44[&model=F81+F{A1C1T1G1}+I{I1}]):0.05,(D1:0.01,D2:0.01,D3:0.01,D4:0.01,D5:0.01,D6:0.01,D7:0.01,D8:0.01,D9:0.01,D10:0.01):.49[&model=F81+F{ACTG}+I{I1}]);'
 
     #outgroup, newick_template = timed_log(run_AliSIM, 'ALISIM', user_txt_path, working_directory, ALI_output_directory)

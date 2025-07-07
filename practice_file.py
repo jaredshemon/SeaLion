@@ -778,8 +778,10 @@ clade_output_path = '/home/s36jshem_hpc/sealion/sealion_script/runs_dir/clade_fi
 outgroup = 'D'
 shrink_nj_tree(nj_tree_location, clade_output_path)
 
+<<<<<<< HEAD
 '''
 '''
+
 def overlay_jermiin():
     ############################################################################################################################################
     #### This function should overlay all the IQTREE outputs from jermiin's setup- branch lengths .01, .025, .05, to show why we chose .05 #####
@@ -788,6 +790,10 @@ def overlay_jermiin():
     path_01 = '/home/s36jshem_hpc/sealion/runs/jermiin/plots/2025-06-12_23-55-14 /IQTREE_SUCCESS.csv'
     path_025 = '/home/s36jshem_hpc/sealion/runs/jermiin/plots/2025-06-13_00-01-16/IQTREE_SUCCESS.csv'
     path_05 = '/home/s36jshem_hpc/sealion/runs/jermiin/plots/2025-06-13_00-03-12/IQTREE_SUCCESS.csv'
+    path_01 = '/home/s36jshem_hpc/sealion/runs/jermiin/plots/2025-06-13_09-13-28/IQTREE_SUCCESS.csv'
+    path_025 = '/home/s36jshem_hpc/sealion/runs/jermiin/plots/2025-06-13_09-14-23/IQTREE_SUCCESS.csv'
+    path_05 = '/home/s36jshem_hpc/sealion/runs/jermiin/plots/2025-06-13_09-16-42/IQTREE_SUCCESS.csv'
+
     df1 = pd.read_csv(path_01)
     df2 = pd.read_csv(path_025)
     df3 = pd.read_csv(path_05)
@@ -1387,3 +1393,4 @@ def delta_sup_v_tot_sup_heatmap(unfiltered_topology_supports):
     plt.savefig('/home/jshemonsky/sealion/heatmaps/delta_support_v_tot_sup_unfiltered_heatmap_trs1-4.svg', dpi=400)
        
 #delta_sup_v_tot_sup_heatmap(unfiltered_topology_supports)
+
