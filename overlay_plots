@@ -1,11 +1,22 @@
 #!/usr/bin/env python3
 
-import matplotlib.pyplot as plt
-import matplotlib.pyplot as plt
-import matplotlib.image as mpimg
-from PIL import Image
-import numpy as np
 import os
+import re
+import subprocess
+import textwrap
+from collections import defaultdict
+from datetime import datetime
+import numpy as np
+import pandas as pd
+from numpy import savetxt
+import matplotlib.pyplot as plt
+import matplotlib.patches as patches
+import matplotlib.lines as mlines
+from matplotlib.lines import Line2D
+import matplotlib.patches as mpatches
+from matplotlib.colors import ListedColormap, LogNorm, Normalize
+import seaborn as sns
+
 #def overlay_plots():
 path = '/Users/jaredshemonsky/Downloads/INDELibleV1.03/tree_graphs/t1 (((A1:0.35,B1:0.35):0.06,C1:0.41):0.09,D1:0.5);'
 
