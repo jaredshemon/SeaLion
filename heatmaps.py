@@ -61,7 +61,7 @@ def percent_rejected_heatmaps():
     trs1, trs2, trs3, trs4, Trs5, Trs6 = trs 
     print(trs1, trs2, trs3, trs4, Trs5, Trs6)
     
-    fig = plt.figure(figsize=(20,20))
+    fig = plt.figure(figsize=(30,30))
     ax = sns.heatmap(
         trs,
         cmap='coolwarm',
@@ -74,12 +74,19 @@ def percent_rejected_heatmaps():
 
     # Make the colorbar label bigger
     cbar = ax.collections[0].colorbar
-    cbar.set_label('Percent Rejected', fontsize=20)   
-    cbar.ax.tick_params(labelsize=16)                 
-    ax.set_title("Percent Rejected for Each Dataset (Trs1–6)", fontsize = 23, fontweight = 'bold')
-    ax.set_xlabel("Dataset", fontsize = 20)
-    ax.set_ylabel("Topology (Trs1–6)", fontsize = 20)
-    ax.set_yticklabels(['Trs1', 'Trs2', 'Trs3', 'Trs4', 'Trs5', 'Trs6' ], rotation=0, fontsize = 20)
+    cbar.set_label('Percent Rejected', fontsize=35)   
+    cbar.ax.tick_params(labelsize=35)                 
+    ax.set_title("Percent Rejected for Each Dataset (Trs1–6)", fontsize = 35, fontweight = 'bold')
+    ax.set_xlabel("Dataset", fontsize = 35)
+    ax.set_ylabel("Topology (Trs1–6)", fontsize = 35)
+    ax.set_yticklabels(['Trs1', 'Trs2', 'Trs3', 'Trs4', 'Trs5', 'Trs6' ], rotation=0, fontsize = 35)
+
+    ax.xaxis.set_ticks_position('top')
+    ax.tick_params(axis='x', which='both', top=True, labeltop=True, bottom=False, labelbottom=False)
+    ax.set_xticks(np.arange(5, 60, 10))   # position ticks at 10, 20, ..., 60
+    ax.set_xticklabels(np.arange(1, 7), fontsize=30, fontweight='bold')
+    for x in np.arange(10, 51, 10):
+        ax.axvline(x, color='black', linestyle='-', linewidth=5, alpha=1)
 
     plt.tight_layout()
     plt.savefig('/home/jshemonsky/sealion/heatmaps/percent_rejected_heatmap_trs1-6.svg', dpi=400)
@@ -369,7 +376,7 @@ def IQ_support_heatmap():
     ]
     trs = [trs1, trs2, trs3, trs4, trs5, trs6]    
     
-    fig = plt.figure(figsize=(22,22))
+    fig = plt.figure(figsize=(30,30))
     ax = sns.heatmap(
         trs,
         cmap='bwr',
@@ -382,13 +389,19 @@ def IQ_support_heatmap():
 
     # Increase colorbar label + tick font size
     cbar = ax.collections[0].colorbar
-    cbar.set_label('IQTREE Support Values', fontsize=20)   
-    cbar.ax.tick_params(labelsize=16)    
-    ax.set_title("IQTREE Support Values for Each Dataset (Trs1–6)", fontsize = 22, fontweight = 'bold')
-    ax.set_xlabel("Dataset", fontsize = 20)
-    ax.set_ylabel("Topology (Trs1–6)", fontsize = 20)
-    ax.set_yticklabels(['Trs1', 'Trs2', 'Trs3', 'Trs4', 'Trs5', 'Trs6'], rotation=0, fontsize = 20)
+    cbar.set_label('IQTREE Support Values', fontsize=35)   
+    cbar.ax.tick_params(labelsize=35)    
+    ax.set_title("IQTREE Support Values for Each Dataset (Trs1–6)", fontsize = 35, fontweight = 'bold')
+    ax.set_xlabel("Dataset", fontsize = 35)
+    ax.set_ylabel("Topology (Trs1–6)", fontsize = 35)
+    ax.set_yticklabels(['Trs1', 'Trs2', 'Trs3', 'Trs4', 'Trs5', 'Trs6'], rotation=0, fontsize = 35)
     
+    ax.xaxis.set_ticks_position('top')
+    ax.tick_params(axis='x', which='both', top=True, labeltop=True, bottom=False, labelbottom=False)
+    ax.set_xticks(np.arange(5, 60, 10))   # position ticks at 10, 20, ..., 60
+    ax.set_xticklabels(np.arange(1, 7), fontsize=30, fontweight='bold')
+    for x in np.arange(10, 51, 10):
+        ax.axvline(x, color='black', linestyle='-', linewidth=5, alpha=1)
     plt.tight_layout()
     plt.savefig('/home/jshemonsky/sealion/heatmaps/IQ_supports_heatmap_trs1-6.svg', dpi=400)
     
@@ -440,12 +453,19 @@ def IQ_delta_sup():
 
     # Adjust colorbar label and tick font size
     cbar = ax.collections[0].colorbar
-    cbar.set_label('IQTREE Δ Support Values', fontsize=20)    
-    cbar.ax.tick_params(labelsize=16) 
-    ax.set_title("IQTREE Δ Support Values for Each Dataset (Trs1–6)", fontsize = 22, fontweight = 'bold')
-    ax.set_xlabel("Dataset", fontsize = 20)
-    ax.set_ylabel("Topology (Trs1–6)", fontsize = 20)
-    ax.set_yticklabels(['Trs1', 'Trs2', 'Trs3', 'Trs4', 'Trs5', 'Trs6'], rotation=0, fontsize = 20)
+    cbar.set_label('IQTREE Δ Support Values', fontsize=30)    
+    cbar.ax.tick_params(labelsize=30) 
+    ax.set_title("IQTREE Δ Support Values for Each Dataset (Trs1–6)", fontsize = 30, fontweight = 'bold')
+    ax.set_xlabel("Dataset", fontsize = 30)
+    ax.set_ylabel("Topology (Trs1–6)", fontsize = 30)
+    ax.set_yticklabels(['Trs1', 'Trs2', 'Trs3', 'Trs4', 'Trs5', 'Trs6'], rotation=0, fontsize = 30)
+    ax.xaxis.set_ticks_position('top')
+    ax.tick_params(axis='x', which='both', top=True, labeltop=True, bottom=False, labelbottom=False)
+    ax.set_xticks(np.arange(5, 60, 10))   # position ticks at 10, 20, ..., 60
+    ax.set_xticklabels(np.arange(1, 7), fontsize=30, fontweight='bold')
+    for x in np.arange(10, 51, 10):
+        ax.axvline(x, color='black', linestyle='-', linewidth=5, alpha=1)
+    plt.tight_layout()
     
     plt.tight_layout()
     plt.savefig('/home/jshemonsky/sealion/heatmaps/IQ_delta_supports_heatmap_trs1-6.svg', dpi=400)
