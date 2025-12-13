@@ -38,7 +38,7 @@ import pandas as pd
 ######################################################################################################
 #### User Inputs: These are locations where you need to input the depencies for your script ##########
 ###################################################################################################### 
-working_directory = '/home/s36jshem_hpc/sealion/runs/reg_run' #This is specified in the bash script, where you'd like all your files to end up
+working_directory = sys.argv[1] #This is specified in the bash script, where you'd like all your files to end up
 how_many_files = 60 #This is how many files you're running 
 correct_newick_string_user_data = "(((A,B),C),D);" #This is the correct newick string
 sealion_container_location = '/home/s36jshem_hpc/sealion/sealion_script/SeaLion_container_dir' #This is where your sealion container is
@@ -471,7 +471,8 @@ def process_task(args):
     fas_fn, txt_fn, sealion_runs_dst, perl_script, sealion_container_location, clade_output_path = args
 
     # Create working subdirectory for this task
-    runs_dir = os.path.join(sealion_runs_dst, fas_fn)
+    runs_dir_name = os.path.splitext(fas_fn)[0]
+    runs_dir = os.path.join(sealion_runs_dst, runs_dir_name)
     os.makedirs(runs_dir, exist_ok=True)
 
     icebreaker_src = os.path.join(sealion_container_location, "opt/SeaLion/icebreaker.o")
@@ -494,7 +495,18 @@ def process_task(args):
     # Build and run the command
     cmd = f"apptainer exec {sealion_container_location} {perl_script} -i {fas_fn} -p {txt_fn} -o D -M '1000' -l '10000' -prt 3 -tlrisk 0.5 -s"
     print(f"→ Running in {runs_dir}: {cmd}")
-    os.system(cmd)
+    log_file = os.path.join(runs_dir, f"{fas_fn}_log.txt")
+    
+    # Run the command and redirect output to log file
+    with open(log_file, "w") as log:
+        subprocess.run(
+    cmd, 
+    shell=True, 
+    stdout=log
+    #stderr=subprocess.STDOUT,
+    #timeout=7200   # 2 hours, change as needed
+)
+        
 
 def run_sea(sealion_container_location, clade_output_path, sealion_runs_dst):
 ####################################################################################
@@ -526,17 +538,18 @@ def run_sea(sealion_container_location, clade_output_path, sealion_runs_dst):
         tasks.append((fas_fn, txt_fn, sealion_runs_dst, perl_script, sealion_container_location, clade_output_path))
 
     # Run in parallel
-    with multiprocessing.Pool(processes=how_many_files) as pool:
+    with multiprocessing.Pool(processes=60) as pool:
         pool.map(process_task, tasks)
 
     print(f"Processed {len(tasks)} file pairs through SeaLion (in parallel!)")
+
 
 ##################################################################
 ### This next section is focused on graphing the results    ######
 ##################################################################
 
 def parse_gc_content(newick: str):
-    pattern = re.compile(r'\(([A-D])\d:.*?\)\:[\d\.]+\[\&model=F81\+F\{([ACTG\d]+)\}')
+    pattern = re.compile(r'\(([A-D])\d:.*?\)\:[\d\.]+\[\&model=\{[^}]+\}\+F\{([ACTG\d]+)\}')
     clade_gc_status = {}
     
     for match in pattern.finditer(newick):
@@ -561,7 +574,7 @@ def diff_visualizations(clade_output_path, saving_location):
     newick_strings1 = [] #UNFILTERED NEWICKS FROM SEALION
 
     for j in range(1, 61):
-        tsv_location = f'{clade_output_path}/clade_file_{j}.fas/testresult_clade_file_{j}/TSV'
+        tsv_location = f'{clade_output_path}/clade_file_{j}/testresult_clade_file_{j}/TSV'
         match = re.search(r'clade_files_\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}', tsv_location)
         match1 = re.search(r'\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}', tsv_location)
         if match:
@@ -1241,7 +1254,7 @@ def diff_graphs(clade_output_path, saving_location):
     diff = []
     diff1 = []
     for j in range(1,61):
-        tsv_location = f'{clade_output_path}/clade_file_{j}.fas/testresult_clade_file_{j}/TSV'
+        tsv_location = f'{clade_output_path}/clade_file_{j}/testresult_clade_file_{j}/TSV'
         match = re.search(r'testresult_clade_file_\d+', tsv_location)
         if match:
                 clade_file_location = match.group()
@@ -1288,7 +1301,7 @@ def diff_graphs(clade_output_path, saving_location):
     differences = diff
     differencesU = diff1
     y_axis = range(1, 61)
-    
+    print(f'Dataset #{len(y_axis)}', f'Δ Best Top Score v. 2nd BestF {len(diff)}', f'Δ Best Top Score v. 2nd BestU {len(diff1)}')
     df = pd.DataFrame({
         'Dataset #': y_axis,
         'Δ Best Top Score v. 2nd Best (Filtered)': diff,
@@ -1385,7 +1398,7 @@ def diff_tree_correct_v_incorrect(differencesU, results, clade_output_path, savi
 ### Shows the delta when the tree is correct v. incorrect ONLY POSITIVE ####################
 ############################################################################################
     for j in range(1,61):
-        tsv_location = f'{clade_output_path}/clade_file_{j}.fas/testresult_clade_file_{j}/TSV'
+        tsv_location = f'{clade_output_path}/clade_file_{j}/testresult_clade_file_{j}/TSV'
         newicks_scores = {}
         match = re.search(r'testresult_clade_file_\d+', tsv_location)
         if match:
@@ -1925,7 +1938,7 @@ def support_b4_af_filtering(clade_output_path, results_filtered, saving_location
     before_support = []
     rejected = []
     for j in range(1,61):
-        tsv_location = f'{clade_output_path}/clade_file_{j}.fas/testresult_clade_file_{j}/TSV'
+        tsv_location = f'{clade_output_path}/clade_file_{j}/testresult_clade_file_{j}/TSV'
         match = re.search(r'testresult_clade_file_\d+', tsv_location)
         if match:
                 clade_file_location = match.group()
@@ -2005,7 +2018,7 @@ def support_b4_af(clade_output_path, saving_location):
     after_support = []
     before_support = []
     for j in range(1,61):
-        tsv_location = f'{clade_output_path}/clade_file_{j}.fas/testresult_clade_file_{j}/TSV'
+        tsv_location = f'{clade_output_path}/clade_file_{j}/testresult_clade_file_{j}/TSV'
         match = re.search(r'testresult_clade_file_\d+', tsv_location)
         if match:
                 clade_file_location = match.group()
@@ -2064,7 +2077,7 @@ def reject_GC(clade_output_path, saving_location):
     percent_rejected = []
     accepted = []
     for j in range(1,61):
-        tsv_location = f'{clade_output_path}/clade_file_{j}.fas/testresult_clade_file_{j}/TSV'
+        tsv_location = f'{clade_output_path}/clade_file_{j}/testresult_clade_file_{j}/TSV'
         match = re.search(r'testresult_clade_file_\d+', tsv_location)
         if match:
                 clade_file_location = match.group()
@@ -2127,7 +2140,213 @@ def reject_GC(clade_output_path, saving_location):
     plt.show()
     return percent_rejected
      
-     
+def gc_graphs_multi_models(path, saving_location, newick_template):
+##############################################################################################################################################
+### This graphs the medians of Clade A, B, C, D. Averages the medians to get a combined graph of GC increasing sequences/GC balanced #########   
+##############################################################################################################################################
+
+
+    def gc_content(seq):
+        gc_count = seq.count('G') + seq.count('C')
+        return (gc_count / len(seq)) * 100 if seq else 0
+
+    def get_medians_by_prefix(gc_list, prefixes):
+        medians = {}
+        for prefix in prefixes:
+            values = [
+                float(val[1])
+                for val in gc_list.values()
+                if val[0].startswith(prefix)
+            ]
+            if values:
+                medians[prefix] = statistics.median(values)
+        return medians
+
+    def extract_number(filename):
+        match = re.search(r'fastaout_(\d+)', filename)
+        return int(match.group(1)) if match else 0
+
+    def mean_gc(medians, group):
+        vals = [medians[taxon] for taxon in group if taxon in medians]
+        return round(sum(vals) / len(vals), 3) if vals else None
+
+    # Containers
+    file_diff = {}
+    file_bal = {}
+    file_inc = {}
+    file_dec = {}
+    clade_gc = {k: {} for k in 'ABCD'}
+    
+    prefixes = ['A', 'B', 'C', 'D']
+    
+    # This parses the newick string 
+    newick_string = newick_template
+    gc_status = parse_gc_content(newick_string)
+    gc_increased = [k for k, v in gc_status.items() if v == "GC Increased"]
+    gc_balanced = [k for k, v in gc_status.items() if v == "Balanced"]
+    gc_decreased = [k for k, v in gc_status.items() if v == "GC Decreased"]
+    print(gc_status)
+    for fname in os.listdir(path):
+        if fname.endswith('fa'):
+            file_path = os.path.join(path, fname)
+            with open(file_path, 'r') as f:
+                headers, sequences, current_seq = [], [], ''
+                for line in f:
+                    line = line.strip()
+                    if line.startswith(">"):
+                        if current_seq:
+                            sequences.append(current_seq)
+                            current_seq = ''
+                        headers.append(line[1:])
+                    else:
+                        current_seq += line
+                if current_seq:
+                    sequences.append(current_seq)
+
+            gc_list = {}
+            for header, seq in zip(headers, sequences):
+                gc = gc_content(seq)
+                gc_list[header] = (header, f"{gc:.2f}", len(seq))
+
+            medians = get_medians_by_prefix(gc_list, prefixes)
+            filename_key = re.search(r'fastaout_\d+\.fa', fname).group()
+            if all(prefix in medians for prefix in 'ABCD'):
+                A, B, C, D = [round(medians[p], 3) for p in 'ABCD']
+                GCbal = mean_gc(medians, gc_balanced)
+                GCinc = mean_gc(medians, gc_increased)####These two variables switch if you switch the sequences that are impacted
+                GCdec = mean_gc(medians, gc_decreased)
+                if GCdec:
+                    GCdiff = round((GCinc - GCdec), 3) #if the graphs are messed up you can edit them here
+                else:
+                    GCdiff = round((GCinc - GCbal), 3)
+
+                file_diff[filename_key] = GCdiff
+                file_bal[filename_key] = GCbal
+                file_inc[filename_key] = GCinc
+                file_dec[filename_key] = GCdec
+                clade_gc['A'][filename_key] = A
+                clade_gc['B'][filename_key] = B
+                clade_gc['C'][filename_key] = C
+                clade_gc['D'][filename_key] = D
+    # Sorting helper
+    def sort_dict_by_filename(d):
+        return dict(sorted(d.items(), key=lambda x: extract_number(x[0])))
+
+    # Sorted outputs
+    file_diff_sorted_file = sort_dict_by_filename(file_diff)
+    file_dec_sorted_file = sort_dict_by_filename(file_dec)
+    file_bal_sorted_file = sort_dict_by_filename(file_bal)
+    file_inc_sorted_file = sort_dict_by_filename(file_inc)
+    sorted_clade_gc = {k: sort_dict_by_filename(v) for k, v in clade_gc.items()}
+
+    #################################
+    rows = []
+    for idx, filename in enumerate(file_diff_sorted_file):
+        if idx % 10 == 0:
+            bin_label = idx // 10 + 1
+            #print(f"\n--- GC Bin {bin_label} ---")
+
+        # Extract data
+        diff = file_diff_sorted_file.get(filename, 'N/A')
+        bal = file_bal_sorted_file.get(filename, 'N/A')
+        inc = file_inc_sorted_file.get(filename, 'N/A')
+        dec = file_dec_sorted_file.get(filename, 'N/A')
+        a = sorted_clade_gc['A'].get(filename, 'N/A')
+        b = sorted_clade_gc['B'].get(filename, 'N/A')
+        c = sorted_clade_gc['C'].get(filename, 'N/A')
+        d = sorted_clade_gc['D'].get(filename, 'N/A')
+
+        rows.append({
+            'GC Bin': bin_label,
+            'Dataset File': filename,
+            'Δ GC': diff,
+            f'GC Increased ({", ".join(gc_increased)}) Clades': inc,
+            f'GC Balanced ({", ".join(gc_balanced)}) Clades': bal,
+            f'GC Decreased ({", ".join(gc_decreased)}) Clades': dec,
+            'Clade A': a,
+            'Clade B': b,
+            'Clade C': c,
+            'Clade D': d,
+        })
+
+    df = pd.DataFrame(rows)
+    csv_path = os.path.join(saving_location, "GC_content_table.csv")
+    df.to_csv(csv_path, index=False)
+    print(df)
+
+    #################################
+    
+    # GC lists for plotting
+    gc_lists = {k: list(v.values()) for k, v in sorted_clade_gc.items()}
+    x_axis = list(file_diff_sorted_file.values())
+    x_axis_inc = list(file_inc_sorted_file.values())
+    x_axis_bal = list(file_bal_sorted_file.values())
+    x_axis_dec = list(file_dec_sorted_file.values())
+    y_axis = range(len(x_axis))
+    def plot_line(y, lines, title, ylabel, filename, label_height, ylim=None):
+        plt.figure(figsize=(16, 6))
+        for data, label, color in lines:
+            plt.plot(y, data, marker='o', linestyle='--', label=label, color=color)
+            csv_name = os.path.splitext(os.path.basename(filename))[0] + ".csv"
+            save_as_csv(y, data, saving_location, csv_name)
+
+        for x in range(0, 59, 10):
+            plt.axvline(x=x - 0.5, color='darkgoldenrod', linestyle='--', linewidth=1)
+
+        for i in range(0, 59, 20):
+            plt.axvspan(i - 0.5, i + 9.5, color='gray', alpha=0.1)
+
+        for i, gc in enumerate([1, 2, 3, 4, 5, 6]):
+            plt.text(i * 10 + 5, int(label_height), f'{gc}', ha='center', va='top', fontsize= 15, fontweight = 'bold')
+
+        plt.xlabel('Dataset #', fontsize = 15)
+        plt.ylabel(ylabel, fontsize = 18)
+        plt.title(title, fontsize = 20, fontweight = 'bold')
+        plt.xticks(ticks=range(len(x_axis)), labels=list(range(1, len(x_axis)+1)))
+        if ylim:
+            plt.ylim(*ylim)
+        plt.legend(fontsize =15)
+        plt.tight_layout()
+        plt.savefig(filename, dpi=300)
+        plt.show()
+        plt.close()
+
+    color_map = {'A': 'blue', 'B': 'lightcoral', 'C': 'green', 'D': 'orange'}
+
+    plot_line(
+        y_axis,
+        [(gc_lists[clade], f'GC Clade ({clade}) - {gc_status[clade]}', color_map[clade]) for clade in "ABCD"],
+        'GC Content Distribution Across Clades with Bin Highlighting',
+        'GC Increased and Balanced',
+        f'{saving_location}/21_GC_Increase_v._Balanced.svg', 
+        label_height=79,
+        ylim=(20, 80)
+    )
+    
+    plot_line(
+        y_axis,
+            [
+        (x_axis_inc, f'GC Increased Clades ({", ".join(gc_increased)})', 'orange'),
+        (x_axis_bal, f'GC Balanced Clades ({", ".join(gc_balanced)})', 'green'),
+        *([(x_axis_dec, f'GC Decreased Clades ({", ".join(gc_decreased)})', 'blue')] if gc_decreased else [])
+        ],
+        'GC Content Distribution Across Combined Clades with Bin Highlighting',
+        'GC Increased and Decreased',
+        f'{saving_location}/22_GC_Increase_v._Balanced_Combined.svg',
+        label_height=79,
+        ylim=(20, 80)
+    )
+
+    plot_line(
+        y_axis,
+        [(x_axis, f'Δ GC Content ({", ".join(gc_balanced)} vs {", ".join(gc_increased)})', 'blue')],
+        'Δ GC Content in the Median of Clades {}/{} vs {}/{}'.format(*gc_balanced, *gc_increased, *gc_decreased),
+        f'Δ GC Content ({", ".join(gc_balanced)} vs {", ".join(gc_increased)})',
+        f'{saving_location}/23_Δ_GC_per_Dataset.svg',
+        label_height= 24,
+        ylim = (-8, 25)
+    )
+         
 def delta_sup_v_total_sup(differencesU, unfiltered_topology_supports, saving_location, results):
 ###########################################################################################################
 ### This the total support of the newick tree v. the delta support of the best v. the second best #########   
@@ -2366,7 +2585,7 @@ def risk_dist_extraction(clade_output_path, saving_location):
     risk_scores = []
     dist_scores = []
     for j in range(1, 61):
-        tsv_location = f'{clade_output_path}/clade_file_{j}.fas/testresult_clade_file_{j}/TSV'
+        tsv_location = f'{clade_output_path}/clade_file_{j}/testresult_clade_file_{j}/TSV'
         for file in os.listdir(tsv_location):
             if file.startswith('MQ1'):
                 full_path = os.path.join(tsv_location, file)
@@ -2528,7 +2747,7 @@ def risk_dist_sup_diff(risk, dist, results, saving_location, rejected):
 ##################################################
 def main():
     # Define all input/output paths here
-    now_format = '2025-10-22_06-02-31'
+    #now_format = '2025-11-18_11-27-38'
     ALI_output_directory = f"{working_directory}/ALI_output_{now_format}"  
     iqtree_output_path = f"{working_directory}/iq_output_{now_format}"
     newick_treefile_output_path = f'{working_directory}/tree_output_{now_format}'
@@ -2536,21 +2755,21 @@ def main():
     sealion_final_directory = f"{working_directory}/sealion_final_output"
     fasta_path = iqtree_output_path
     newick_corrected_path = f"{working_directory}/corrected_IQ_newick_output_{now_format}"
-    sealion_runs_dst = f'{clade_output_path}/sealion_runs'
+    sealion_runs_dst = f'{clade_output_path}'
     graph_saving_location = f"{working_directory}/plots/"
     if not os.path.exists(graph_saving_location):
         os.makedirs(graph_saving_location)
     IQ_csv_location = f'{graph_saving_location}IQTREE_SUCCESS.csv'
-    #newick_template = '((((A1:0.01,A2:0.01,A3:0.01,A4:0.01,A5:0.01,A6:0.01,A7:0.01,A8:0.01,A9:0.01,A10:0.01):.44[&model=F81+F{A1C1T1G1}+I{I1}],(B1:0.01,B2:0.01,B3:0.01,B4:0.01,B5:0.01,B6:0.01,B7:0.01,B8:0.01,B9:0.01,B10:0.01):.44[&model=F81+F{A1C1T1G1}+I{I1}]):0.025,(C1:0.01,C2:0.01,C3:0.01,C4:0.01,C5:0.01,C6:0.01,C7:0.01,C8:0.01,C9:0.01,C10:0.01):.465[&model=F81+F{ACTG}+I{I1}]):0.025,(D1:0.01,D2:0.01,D3:0.01,D4:0.01,D5:0.01,D6:0.01,D7:0.01,D8:0.01,D9:0.01,D10:0.01):.49[&model=F81+F{ACTG}+I{I1}]);'
+    #newick_template = '((((A1:0.01,A2:0.01,A3:0.01,A4:0.01,A5:0.01,A6:0.01,A7:0.01,A8:0.01,A9:0.01,A10:0.01):.39[&model={model1}+F{A1C1T1G1}+I{I1}],(B1:0.01,B2:0.01,B3:0.01,B4:0.01,B5:0.01,B6:0.01,B7:0.01,B8:0.01,B9:0.01,B10:0.01):.39[&model={model1}+F{ACTG}+I{I1}]):0.05,(C1:0.01,C2:0.01,C3:0.01,C4:0.01,C5:0.01,C6:0.01,C7:0.01,C8:0.01,C9:0.01,C10:0.01):.44[&model={model1}+F{A1C1T1G1}+I{I1}]):0.05,(D1:0.01,D2:0.01,D3:0.01,D4:0.01,D5:0.01,D6:0.01,D7:0.01,D8:0.01,D9:0.01,D10:0.01):.49[&model={model1}+F{ACTG}+I{I1}])'
 
-    #outgroup, newick_template = timed_log(run_AliSIM, 'ALISIM', user_txt_path, working_directory, ALI_output_directory)
-    #timed_log(rename_seq_fasta, 'IQTREE rename', ALI_output_directory, iqtree_output_path, iq_model)
-    #move_tree_files(iqtree_output_path, newick_treefile_output_path)
-    #make_clade_files(fasta_path, clade_output_path, sealion_final_directory)
-    #shrink_newick(newick_treefile_output_path, newick_corrected_path, clade_output_path, reroot_directory, outgroup)
-    #graph_correct_outputs(newick_corrected_path, correct_newick_string_user_data, tq_dist_path, graph_saving_location, working_directory)
-    #gc_graphs_multi_models(iqtree_output_path, graph_saving_location, newick_template) 
-    #run_sea(sealion_container_location, clade_output_path, sealion_runs_dst)
+    outgroup, newick_template = timed_log(run_AliSIM, 'ALISIM', user_txt_path, working_directory, ALI_output_directory)
+    timed_log(rename_seq_fasta, 'IQTREE rename', ALI_output_directory, iqtree_output_path, iq_model)
+    move_tree_files(iqtree_output_path, newick_treefile_output_path)
+    make_clade_files(fasta_path, clade_output_path, sealion_final_directory)
+    shrink_newick(newick_treefile_output_path, newick_corrected_path, clade_output_path, reroot_directory, outgroup)
+    graph_correct_outputs(newick_corrected_path, correct_newick_string_user_data, tq_dist_path, graph_saving_location, working_directory)
+    gc_graphs_multi_models(iqtree_output_path, graph_saving_location, newick_template) 
+    run_sea(sealion_container_location, clade_output_path, sealion_runs_dst)
     saving_location, newick_strings1, unfiltered_topology_supports, newick_strings, filtered_supports = diff_visualizations(clade_output_path, graph_saving_location)
     unfiltered_quartet_supports(unfiltered_topology_supports, graph_saving_location)
     results_IQ = IQ_quartet_supports(iqtree_output_path, newick_corrected_path, correct_newick_string_user_data, tq_dist_path, working_directory, graph_saving_location)
@@ -2617,5 +2836,38 @@ def IQ_correct(IQ_csv_location, saving_location):
     return x1, y1
 
 #IQ_correct(IQ_csv_location, graph_saving_location)
+
+'''
+
+'''
+def process_task(args):
+    fas_fn, txt_fn, sealion_runs_dst, perl_script, sealion_container_location, clade_output_path = args
+
+    # Create working subdirectory for this task
+    runs_dir = os.path.join(sealion_runs_dst, os.path.splitext(fas_fn)[0])
+    os.makedirs(runs_dir, exist_ok=True)
+
+    icebreaker_src = os.path.join(sealion_container_location, "opt/SeaLion/icebreaker.o")
+    icebreaker_dst = os.path.join(runs_dir, "icebreaker.o")
+    shutil.copy(icebreaker_src, icebreaker_dst)
+    
+    # Full paths to input files
+    fas_src = os.path.join(clade_output_path, fas_fn)
+    txt_src = os.path.join(clade_output_path, txt_fn)
+ 
+    # Copy the input files to the task folder
+    fas_dst = os.path.join(runs_dir, fas_fn)
+    txt_dst = os.path.join(runs_dir, txt_fn)
+
+    shutil.move(fas_src, fas_dst)
+    shutil.move(txt_src, txt_dst)
+    
+    # Change to task-specific directory
+    os.chdir(runs_dir)
+    print(fas_fn, txt_fn)
+    # Build and run the command
+    cmd = f"apptainer exec {sealion_container_location} {perl_script} -i {fas_fn} -p {txt_fn} -o D -M '1000' -l '10000' -prt 3 -tlrisk 0.5 -s"
+    print(f"→ Running in {runs_dir}: {cmd}")
+    os.system(cmd)
 
 '''

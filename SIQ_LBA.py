@@ -32,7 +32,6 @@ import statistics
 from collections import defaultdict
 import csv
 import pandas as pd
-import plottable
 
 ######################################################################################################
 ######################################################################################################
@@ -411,14 +410,17 @@ def graph_correct_outputs(newick_corrected_path, correct_newick_string_user_data
 
     newick_strings = []
     for file in sorted(os.listdir(newick_corrected_path), key = extract_number):
+        #if file.startswith('fastaout') and file.endswith('treefile'):
         if file.startswith('corrected') and file.endswith('txt'):
             file_path = os.path.join(newick_corrected_path, file)
             with open(file_path, 'r') as f:
                 newick_string = f.read().strip()
+                print(newick_string)
                 newick_strings.append(newick_string)
     user_newick = correct_newick_string_user_data
     def stripped_newick(string):
         return re.sub(r'([0-9.e-]+|#[A-Za-z0-9_]+)', '', string)
+    
 
     newick_path = working_directory
     newick_file_path = os.path.join(newick_path, 'newickfile1.txt')
@@ -507,7 +509,17 @@ def process_task(args):
     # Build and run the command
     cmd = f"apptainer exec {sealion_container_location} {perl_script} -i {fas_fn} -p {txt_fn} -o D -M '1000' -l '10000' -prt 3 -tlrisk 0.5 -s"
     print(f"→ Running in {runs_dir}: {cmd}")
-    os.system(cmd)
+    log_file = os.path.join(runs_dir, f"{fas_fn}_log.txt")
+    
+    # Run the command and redirect output to log file
+    with open(log_file, "w") as log:
+        subprocess.run(
+    cmd, 
+    shell=True, 
+    stdout=log
+    #stderr=subprocess.STDOUT,
+    #timeout=7200   # 2 hours, change as needed
+)
 
 def run_sea(sealion_container_location, clade_output_path, sealion_runs_dst):
 ####################################################################################
@@ -539,7 +551,7 @@ def run_sea(sealion_container_location, clade_output_path, sealion_runs_dst):
         tasks.append((fas_fn, txt_fn, sealion_runs_dst, perl_script, sealion_container_location, clade_output_path))
 
     # Run in parallel
-    with multiprocessing.Pool(processes=how_many_files) as pool:
+    with multiprocessing.Pool(processes=60) as pool:
         pool.map(process_task, tasks)
 
     print(f"Processed {len(tasks)} file pairs through SeaLion (in parallel!)")
@@ -574,7 +586,7 @@ def diff_visualizations(clade_output_path, saving_location):
     newick_strings1 = [] #UNFILTERED NEWICKS FROM SEALION
 
     for j in range(1, 61):
-        tsv_location = f'{clade_output_path}/clade_file_{j}.fas/testresult_clade_file_{j}/TSV'
+        tsv_location = f'{clade_output_path}/clade_file_{j}/testresult_clade_file_{j}/TSV'
         match = re.search(r'clade_files_\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}', tsv_location)
         match1 = re.search(r'\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}', tsv_location)
         if match:
@@ -893,7 +905,7 @@ def IQ_quartet_supports(IQ_likeli_loc, newick_corrected_path, user_newick, tq_di
 
     plt.xlabel("Dataset Number", fontsize = 15)
     plt.ylabel("Log-Likelihood Score", fontsize = 18)
-    plt.ylim(-74000,-80000)
+    #plt.ylim(-74000,-80000)
     plt.title("Log-Likelihood Scores by Dataset", fontsize = 20, fontweight = 'bold')
     plt.xticks(range(1,61))
     plt.tight_layout()
@@ -1253,7 +1265,7 @@ def diff_graphs(clade_output_path, saving_location):
     diff = []
     diff1 = []
     for j in range(1,61):
-        tsv_location = f'{clade_output_path}/clade_file_{j}.fas/testresult_clade_file_{j}/TSV'
+        tsv_location = f'{clade_output_path}/clade_file_{j}/testresult_clade_file_{j}/TSV'
         match = re.search(r'testresult_clade_file_\d+', tsv_location)
         if match:
                 clade_file_location = match.group()
@@ -1397,7 +1409,7 @@ def diff_tree_correct_v_incorrect(differencesU, results, clade_output_path, savi
 ### Shows the delta when the tree is correct v. incorrect ONLY POSITIVE ####################
 ############################################################################################
     for j in range(1,61):
-        tsv_location = f'{clade_output_path}/clade_file_{j}.fas/testresult_clade_file_{j}/TSV'
+        tsv_location = f'{clade_output_path}/clade_file_{j}/testresult_clade_file_{j}/TSV'
         newicks_scores = {}
         match = re.search(r'testresult_clade_file_\d+', tsv_location)
         if match:
@@ -1932,7 +1944,7 @@ def support_b4_af_filtering(clade_output_path, results_filtered, saving_location
     before_support = []
     rejected = []
     for j in range(1,61):
-        tsv_location = f'{clade_output_path}/clade_file_{j}.fas/testresult_clade_file_{j}/TSV'
+        tsv_location = f'{clade_output_path}/clade_file_{j}/testresult_clade_file_{j}/TSV'
         match = re.search(r'testresult_clade_file_\d+', tsv_location)
         if match:
                 clade_file_location = match.group()
@@ -2012,7 +2024,7 @@ def support_b4_af(clade_output_path, saving_location):
     after_support = []
     before_support = []
     for j in range(1,61):
-        tsv_location = f'{clade_output_path}/clade_file_{j}.fas/testresult_clade_file_{j}/TSV'
+        tsv_location = f'{clade_output_path}/clade_file_{j}/testresult_clade_file_{j}/TSV'
         match = re.search(r'testresult_clade_file_\d+', tsv_location)
         if match:
                 clade_file_location = match.group()
@@ -2071,7 +2083,7 @@ def reject_GC(clade_output_path, saving_location):
     percent_rejected = []
     accepted = []
     for j in range(1,61):
-        tsv_location = f'{clade_output_path}/clade_file_{j}.fas/testresult_clade_file_{j}/TSV'
+        tsv_location = f'{clade_output_path}/clade_file_{j}/testresult_clade_file_{j}/TSV'
         match = re.search(r'testresult_clade_file_\d+', tsv_location)
         if match:
                 clade_file_location = match.group()
@@ -2578,7 +2590,7 @@ def risk_dist_extraction(clade_output_path, saving_location):
     risk_scores = []
     dist_scores = []
     for j in range(1, 61):
-        tsv_location = f'{clade_output_path}/clade_file_{j}.fas/testresult_clade_file_{j}/TSV'
+        tsv_location = f'{clade_output_path}/clade_file_{j}/testresult_clade_file_{j}/TSV'
         for file in os.listdir(tsv_location):
             if file.startswith('MQ1'):
                 full_path = os.path.join(tsv_location, file)
@@ -2742,7 +2754,7 @@ def risk_dist_sup_diff(risk, dist, results, saving_location, rejected):
 #FILE LOCATIONS/VARIABLE INPUTS:##################
 ##################################################
 def main():
-    #now_format = '2025-06-19_10-53-07' 
+    #now_format = '2025-11-08_18-52-23' 
     # Define all input/output paths here
     ALI_output_directory = f"{working_directory}/ALI_output_{now_format}"  
     iqtree_output_path = f"{working_directory}/iq_output_{now_format}"

@@ -39,7 +39,7 @@ import plottable
 ######################################################################################################
 #### User Inputs: These are locations where you need to input the depencies for your script ##########
 ###################################################################################################### 
-working_directory = f'/home/jshemonsky/sealion/runs/runs/tbl.01_ibl.05/trs1.1' #This is specified in the bash script, where you'd like all your files to end up
+working_directory = f'/home/jshemonsky/sealion/runs/runs/tbl.01_ibl.05/trs6.1' #This is specified in the bash script, where you'd like all your files to end up
 how_many_files = 60 #This is how many files you're running 
 correct_newick_string_user_data = "(((A,B),C),D);" #This is the correct newick string
 sealion_container_location = '/share/scientific_bin/singularity/containers/SeaLion_container.sif' #This is where your sealion container is
@@ -651,8 +651,8 @@ def diff_visualizations(clade_output_path, saving_location):
     plt.bar(labels, supports, color=bar_colors)
     threshold = 0.6
     threshold1 = 0.4
-    plt.axhline(y=threshold, color='blue', linestyle=':', linewidth=1, label=f'Good Support')
-    plt.axhline(y=threshold1, color='blue', linestyle=':', linewidth=1, label=f'Moderate Conflict')
+    plt.axhline(y=threshold, color='black', linestyle=':', linewidth=4, label=f'Good Support')
+    plt.axhline(y=threshold1, color='black', linestyle=':', linewidth=4, label=f'Moderate Conflict')
     plt.text(60, 0.7, 'Good Support', color='black', fontsize=20, va='top')
     plt.text(60, 0.5, 'Moderate Conflict', color='black', fontsize=20, va='top')
     plt.text(60, 0.3, 'High Conflict', color='black', fontsize=20, va='top')
@@ -663,7 +663,7 @@ def diff_visualizations(clade_output_path, saving_location):
 
     # Add dashed lines
     for x in range(10, 60, 10):
-        plt.axvline(x=x - 0.5, color='blue', linestyle='--', linewidth=1)
+        plt.axvline(x=x - 0.5, color='blue', linestyle='--', linewidth=4)
 
     #Add shaded backgrounds
     for i in range(0, 60, 20):  # every other bin
@@ -736,8 +736,8 @@ def unfiltered_quartet_supports(unfiltered_topology_supports, saving_location):
 
     threshold = 0.6
     threshold1 = 0.4
-    plt.axhline(y=threshold, color='blue', linestyle=':', linewidth=1, label=f'Good Support')
-    plt.axhline(y=threshold1, color='blue', linestyle=':', linewidth=1, label=f'Moderate Conflict')
+    plt.axhline(y=threshold, color='black', linestyle=':', linewidth=4, label=f'Good Support')
+    plt.axhline(y=threshold1, color='black', linestyle=':', linewidth=4, label=f'Moderate Conflict')
     plt.text(60, 0.7, 'Good Support', color='black', fontsize=20, va='top')
     plt.text(60, 0.5, 'Moderate Conflict', color='black', fontsize=20, va='top')
     plt.text(60, 0.3, 'High Conflict', color='black', fontsize=20, va='top')
@@ -748,7 +748,7 @@ def unfiltered_quartet_supports(unfiltered_topology_supports, saving_location):
 
         # Add dashed lines
     for x in range(10, 60, 10):
-        plt.axvline(x=x - 0.5, color='blue', linestyle='--', linewidth=1)
+        plt.axvline(x=x - 0.5, color='blue', linestyle='--', linewidth=3)
 
     #Add shaded backgrounds
     for i in range(0, 60, 20):  # every other bin
@@ -1432,7 +1432,7 @@ def diff_tree_correct_v_incorrect(differencesU, results, clade_output_path, savi
 
     # Add dashed lines
     for x in range(11, 61, 10):
-        plt.axvline(x=x - 0.5, color='red', linestyle='--', linewidth=1)
+        plt.axvline(x=x - 0.5, color='black', linestyle='--', linewidth=3)
 
     #Add shaded backgrounds
     for i in range(1, 61, 20):  # every other bin
@@ -1444,7 +1444,7 @@ def diff_tree_correct_v_incorrect(differencesU, results, clade_output_path, savi
         plt.text(i * 10 + 5, .95, f'{gc}', ha='center', va='top', fontsize=15, fontweight = 'bold', transform=plt.gca().transData)
     
     threshold = .3
-    plt.axhline(y=threshold, color='lightcoral', linestyle=':', linewidth=1)
+    plt.axhline(y=threshold, color='black', linestyle=':', linewidth=3)
     plt.text(61, 0.15, 'High Conflict', color='black', fontsize=20, va='top')
 
 
@@ -1486,7 +1486,7 @@ def diff_tree_correct_v_incorrect_filtered(differences, results, clade_output_pa
 
     # Add dashed lines
     for x in range(11, 61, 10):
-        plt.axvline(x=x - 0.5, color='red', linestyle='--', linewidth=1)
+        plt.axvline(x=x - 0.5, color='black', linestyle='--', linewidth=3)
 
     for x, y in enumerate(differences):
         if y == 0:
@@ -1503,7 +1503,7 @@ def diff_tree_correct_v_incorrect_filtered(differences, results, clade_output_pa
         plt.text(i * 10 + 5, .95, f'{gc}', ha='center', va='top', fontsize=15, transform=plt.gca().transData, fontweight = 'bold')
     
     threshold = .3
-    plt.axhline(y=threshold, color='lightcoral', linestyle=':', linewidth=1)
+    plt.axhline(y=threshold, color='black', linestyle=':', linewidth=3)
     plt.text(61, 0.15, 'High Conflict', color='black', fontsize=20, va='top')
 
 
@@ -1748,12 +1748,14 @@ def combined_graph_bar(differences, differencesU, saving_location):
     ax1.set_xlabel('Dataset')
     ax1.set_ylabel('Support Δ (Filtered)', color='darkgoldenrod', fontsize = 18)
     ax1.tick_params(axis='y', labelcolor='darkgoldenrod')
-    plt.axhline(y=.3, color='green', linestyle=':', linewidth=1, label=f'Good Support')
+    plt.axhline(y=.3, color='black', linestyle=':', linewidth=3, label=f'Good Support')
     plt.text(61, 0.15, 'High Conflict', color='black', fontsize=20, va='top')
     plt.ylim(0,1)
+    y_min = 0
+    y_max = 1
 
     for x in range(1, 60, 10):
-        plt.axvline(x=x - 0.5, color='darkgoldenrod', linestyle='--', linewidth=1)
+        plt.axvline(x=x - 0.5, color='black', linestyle='--', linewidth=3)
 
     for i in range(1, 60, 20):  # every other bin
         plt.axvspan(i - 0.5, i + 9.5, color='gray', alpha=0.1)
@@ -1768,6 +1770,8 @@ def combined_graph_bar(differences, differencesU, saving_location):
     ax2.set_ylabel('Support Δ (Unfiltered)', color='seagreen', fontsize = 18)
     ax2.tick_params(axis='y', labelcolor='seagreen')
 
+    ax1.set_ylim(y_min, y_max)
+    ax2.set_ylim(y_min, y_max)
     # Add legends for both datasets
     fig.legend(loc='upper center', bbox_to_anchor=(0.5, -0.08), ncol=3, frameon=False, bbox_transform=ax1.transAxes, fontsize = 15)
 
@@ -2737,7 +2741,7 @@ def risk_dist_sup_diff(risk, dist, results, saving_location, rejected):
 #FILE LOCATIONS/VARIABLE INPUTS:##################
 ##################################################
 def main():
-    now_format = '2025-06-19_10-53-07' 
+    now_format = '2025-06-17_15-53-24' 
     # Define all input/output paths here
     ALI_output_directory = f"{working_directory}/ALI_output_{now_format}"  
     iqtree_output_path = f"{working_directory}/iq_output_{now_format}"
@@ -2765,13 +2769,13 @@ def main():
     #run_sea(sealion_container_location, clade_output_path, sealion_runs_dst)
     saving_location, newick_strings1, unfiltered_topology_supports, newick_strings, filtered_supports = diff_visualizations(clade_output_path, graph_saving_location)
     unfiltered_quartet_supports(unfiltered_topology_supports, graph_saving_location)
-    results_IQ = IQ_quartet_supports(iqtree_output_path, newick_corrected_path, correct_newick_string_user_data, tq_dist_path, working_directory, graph_saving_location)
+    #results_IQ = IQ_quartet_supports(iqtree_output_path, newick_corrected_path, correct_newick_string_user_data, tq_dist_path, working_directory, graph_saving_location)
     csv_path1, results = graph_correct_outputs1(newick_strings1, correct_newick_string_user_data, tq_dist_path, graph_saving_location)
     csv_path2, results_filtered, rejected_focused = graph_correct_outputs2(newick_strings, correct_newick_string_user_data, tq_dist_path, graph_saving_location)
     # graph_correct_outputsIQ(newick_corrected_path, correct_newick_string_user_data, tq_dist_path, graph_saving_location, working_directory)#same as the graph_correct_outputs function
     # correct_incorrect_rejected_filtered(results_filtered, rejected_focused, graph_saving_location)
-    x1, y1, x2, y2 = overlay_correct(csv_path1, IQ_csv_location, graph_saving_location)
-    x1, y1, x2, y2 = overlay_correct2(csv_path2, IQ_csv_location, graph_saving_location)
+    #x1, y1, x2, y2 = overlay_correct(csv_path1, IQ_csv_location, graph_saving_location)
+    #x1, y1, x2, y2 = overlay_correct2(csv_path2, IQ_csv_location, graph_saving_location)
     differences, differencesU = diff_graphs(clade_output_path, graph_saving_location)
     # diff_graphs1(differencesU, graph_saving_location)
     diff_tree_correct_v_incorrect(differencesU, results, clade_output_path, graph_saving_location)
@@ -2785,7 +2789,7 @@ def main():
     rejected = support_b4_af_filtering(clade_output_path, results_filtered, graph_saving_location)
     # support_b4_af(clade_output_path, graph_saving_location)
     # percent_rejected = reject_GC(clade_output_path, graph_saving_location)
-    delta_sup_v_total_sup(differencesU, unfiltered_topology_supports, saving_location, results)
+    #delta_sup_v_total_sup(differencesU, unfiltered_topology_supports, saving_location, results)
     delta_sup_v_total_sup_filtered(differences, filtered_supports, saving_location, results_filtered, rejected)
     # risk_sup, dist_sup, rejected = risk_dist_extraction(clade_output_path, graph_saving_location)
     # risk_dist_sup_diff(risk_sup, dist_sup, results_filtered, graph_saving_location, rejected)
