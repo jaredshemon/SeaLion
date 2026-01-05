@@ -38,7 +38,7 @@ import pandas as pd
 ######################################################################################################
 #### User Inputs: These are locations where you need to input the depencies for your script ##########
 ###################################################################################################### 
-working_directory = sys.argv[1] #This is specified in the bash script, where you'd like all your files to end up
+working_directory = sys.argv[1]#This is specified in the bash script, where you'd like all your files to end up
 how_many_files = 60 #This is how many files you're running 
 correct_newick_string_user_data = "(((A,B),C),D);" #This is the correct newick string
 sealion_container_location = '/home/s36jshem_hpc/sealion/sealion_script/SeaLion_container_dir' #This is where your sealion container is
@@ -494,19 +494,10 @@ def process_task(args):
 
     # Build and run the command
     cmd = f"apptainer exec {sealion_container_location} {perl_script} -i {fas_fn} -p {txt_fn} -o D -M '1000' -l '10000' -prt 3 -tlrisk 0.5 -s"
+    subprocess.run(cmd, shell=True, cwd=runs_dir)
     print(f"→ Running in {runs_dir}: {cmd}")
-    log_file = os.path.join(runs_dir, f"{fas_fn}_log.txt")
-    
-    # Run the command and redirect output to log file
-    with open(log_file, "w") as log:
-        subprocess.run(
-    cmd, 
-    shell=True, 
-    stdout=log
-    #stderr=subprocess.STDOUT,
-    #timeout=7200   # 2 hours, change as needed
-)
-        
+    #log_file = os.path.join(runs_dir, f"{fas_fn}_log.txt")
+
 
 def run_sea(sealion_container_location, clade_output_path, sealion_runs_dst):
 ####################################################################################
@@ -524,7 +515,7 @@ def run_sea(sealion_container_location, clade_output_path, sealion_runs_dst):
     # Find and sort clade files
     clade_def_files = [f for f in os.listdir(clade_output_path) if f.startswith('clade_def_file') and f.endswith('.txt')]
     clade_files = [f for f in os.listdir(clade_output_path) if f.startswith('clade_file') and f.endswith('.fas')]
-    
+    print(clade_def_files)
     clade_def_files.sort(key=lambda x: tuple(map(int, re.search(r'clade_def_file_(\d+)\.txt', x).groups())))
     clade_files.sort(key=lambda x: tuple(map(int, re.search(r'clade_file_(\d+)\.fas', x).groups())))
 
@@ -2747,7 +2738,7 @@ def risk_dist_sup_diff(risk, dist, results, saving_location, rejected):
 ##################################################
 def main():
     # Define all input/output paths here
-    #now_format = '2025-11-18_11-27-38'
+    #now_format = '2025-12-13_19-27-36'
     ALI_output_directory = f"{working_directory}/ALI_output_{now_format}"  
     iqtree_output_path = f"{working_directory}/iq_output_{now_format}"
     newick_treefile_output_path = f'{working_directory}/tree_output_{now_format}'

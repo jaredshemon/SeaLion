@@ -508,18 +508,11 @@ def process_task(args):
 
     # Build and run the command
     cmd = f"apptainer exec {sealion_container_location} {perl_script} -i {fas_fn} -p {txt_fn} -o D -M '1000' -l '10000' -prt 3 -tlrisk 0.5 -s"
+    subprocess.run(cmd, shell=True, cwd=runs_dir)
     print(f"→ Running in {runs_dir}: {cmd}")
-    log_file = os.path.join(runs_dir, f"{fas_fn}_log.txt")
-    
-    # Run the command and redirect output to log file
-    with open(log_file, "w") as log:
-        subprocess.run(
-    cmd, 
-    shell=True, 
-    stdout=log
-    #stderr=subprocess.STDOUT,
-    #timeout=7200   # 2 hours, change as needed
-)
+    #log_file = os.path.join(runs_dir, f"{fas_fn}_log.txt")
+
+
 
 def run_sea(sealion_container_location, clade_output_path, sealion_runs_dst):
 ####################################################################################
@@ -551,7 +544,7 @@ def run_sea(sealion_container_location, clade_output_path, sealion_runs_dst):
         tasks.append((fas_fn, txt_fn, sealion_runs_dst, perl_script, sealion_container_location, clade_output_path))
 
     # Run in parallel
-    with multiprocessing.Pool(processes=60) as pool:
+    with multiprocessing.Pool(processes=30) as pool:
         pool.map(process_task, tasks)
 
     print(f"Processed {len(tasks)} file pairs through SeaLion (in parallel!)")
