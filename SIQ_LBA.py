@@ -544,7 +544,7 @@ def run_sea(sealion_container_location, clade_output_path, sealion_runs_dst):
         tasks.append((fas_fn, txt_fn, sealion_runs_dst, perl_script, sealion_container_location, clade_output_path))
 
     # Run in parallel
-    with multiprocessing.Pool(processes=30) as pool:
+    with multiprocessing.Pool(processes=60) as pool:
         pool.map(process_task, tasks)
 
     print(f"Processed {len(tasks)} file pairs through SeaLion (in parallel!)")
